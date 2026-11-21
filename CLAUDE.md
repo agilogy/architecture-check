@@ -15,7 +15,9 @@ on any finding. Its configuration is the consuming repository's `config/architec
 ./gradlew publishToMavenLocal   # try a change in a consuming build through mavenLocal()
 ```
 
-Every push to `master` publishes `0.1.<run number>` to GitHub Packages (`.github/workflows/build.yml`).
+Every pull request bumps `version` in `gradle.properties` (major.minor.patch): its build fails while that
+version is already published. Every push to `main` publishes it to GitHub Packages
+(`.github/workflows/build.yml`).
 
 ## Code
 
