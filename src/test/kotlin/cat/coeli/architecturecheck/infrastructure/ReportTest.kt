@@ -78,7 +78,7 @@ class CatalogueFileTest {
             readCatalogue(
                 """
                 {
-                    "ownPackage": "cat.coeli.alerts",
+                    "ownPackage": "com.example",
                     // Layers of libraries
                     "libraries": { "io.ktor": "Infrastructure" },
                     "allowedSuppressions": ["JUnitMalformedDeclaration"],
@@ -94,7 +94,7 @@ class CatalogueFileTest {
         )
         assertEquals(setOf("JUnitMalformedDeclaration"), catalogue.allowedSuppressions)
         assertEquals(setOf("modules/test-utils"), catalogue.testSupportModules)
-        assertEquals("cat.coeli.alerts", catalogue.ownPackage)
+        assertEquals("com.example", catalogue.ownPackage)
     }
 
     @Test

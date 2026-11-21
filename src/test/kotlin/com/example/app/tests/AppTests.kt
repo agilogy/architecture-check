@@ -1,6 +1,6 @@
-package cat.coeli.alerts.app.tests
+package com.example.app.tests
 
-import cat.coeli.alerts.sample.domain.usedByOtherModulesTests
+import com.example.sample.domain.usedByOtherModulesTests
 
 // Compiled into the `src/test` of `apps/app`.
 

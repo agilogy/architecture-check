@@ -11,15 +11,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Analyzes a made-up repository whose classes are the fixtures under `cat.coeli.alerts.sample`,
- * `.app` and `.elsewhere` of this test source set, copied to where Gradle would have compiled them.
+ * Analyzes a made-up repository whose classes are the fixtures under `com.example.sample`, `.app`
+ * and `.elsewhere` of this test source set, copied to where Gradle would have compiled them.
  */
 class AnalysisTest {
     private val root = createTempDirectory("architecture-check").toFile()
 
     private val catalogue =
         Catalogue(
-            ownPackage = "cat.coeli.alerts",
+            ownPackage = "com.example",
             libraries =
                 mapOf(
                     "kotlin" to Layer.Helper,
@@ -32,14 +32,14 @@ class AnalysisTest {
         )
 
     private val findings: List<Finding> by lazy {
-        compiled("cat/coeli/alerts/sample/domain", "modules/sample", SourceSet.Main)
-        compiled("cat/coeli/alerts/sample/infrastructure", "modules/sample", SourceSet.Main)
-        compiled("cat/coeli/alerts/sample/cycle", "modules/sample", SourceSet.Main)
-        compiled("cat/coeli/alerts/elsewhere", "modules/sample", SourceSet.Main)
-        compiled("cat/coeli/alerts/sample/tests", "modules/sample", SourceSet.Test)
-        compiled("cat/coeli/alerts/app/infrastructure", "apps/app", SourceSet.Main)
-        compiled("cat/coeli/alerts/app/domain", "apps/app", SourceSet.Main)
-        compiled("cat/coeli/alerts/app/tests", "apps/app", SourceSet.Test)
+        compiled("com/example/sample/domain", "modules/sample", SourceSet.Main)
+        compiled("com/example/sample/infrastructure", "modules/sample", SourceSet.Main)
+        compiled("com/example/sample/cycle", "modules/sample", SourceSet.Main)
+        compiled("com/example/elsewhere", "modules/sample", SourceSet.Main)
+        compiled("com/example/sample/tests", "modules/sample", SourceSet.Test)
+        compiled("com/example/app/infrastructure", "apps/app", SourceSet.Main)
+        compiled("com/example/app/domain", "apps/app", SourceSet.Main)
+        compiled("com/example/app/tests", "apps/app", SourceSet.Test)
         file("build.gradle.kts", "plugins { base }")
         file(
             "modules/sample/build.gradle.kts",
@@ -54,7 +54,7 @@ class AnalysisTest {
         )
         file("apps/app/build.gradle.kts", "dependencies { implementation(projects.sample) }")
         file(
-            "modules/sample/src/main/kotlin/cat/coeli/alerts/sample/domain/Suppressed.kt",
+            "modules/sample/src/main/kotlin/com/example/sample/domain/Suppressed.kt",
             """
             @Suppress("MagicNumber", "Allowed")
             val x = 42
@@ -90,7 +90,7 @@ class AnalysisTest {
     fun domainCodeMayNotReachInfrastructure() {
         assertEquals(
             listOf(
-                "cat.coeli.alerts.sample.domain.ReportKt → java.io Domain → Infrastructure: java.io.File",
+                "com.example.sample.domain.ReportKt → java.io Domain → Infrastructure: java.io.File",
             ),
             found(FindingKind.ForbiddenDependencies),
         )
@@ -100,7 +100,7 @@ class AnalysisTest {
     fun infrastructureFilesThatNeedNothingOfItArePlacedTooLow() {
         assertEquals(
             listOf(
-                "cat/coeli/alerts/sample/infrastructure/Pure.kt needs nothing of Infrastructure",
+                "com/example/sample/infrastructure/Pure.kt needs nothing of Infrastructure",
             ),
             found(FindingKind.ClassesPlacedTooLow),
         )
@@ -110,7 +110,7 @@ class AnalysisTest {
     fun librariesTheCatalogueDoesNotListHaveNoLayer() {
         assertEquals(
             listOf(
-                "java.util.zip used by cat.coeli.alerts.sample.infrastructure.UsesAnUncataloguedLibrary",
+                "java.util.zip used by com.example.sample.infrastructure.UsesAnUncataloguedLibrary",
             ),
             found(FindingKind.LibrariesWithoutRole),
         )
@@ -119,7 +119,7 @@ class AnalysisTest {
     @Test
     fun packagesThatDependOnEachOtherFormACycle() {
         assertEquals(
-            listOf("cat.coeli.alerts.sample.cycle.a ↔ cat.coeli.alerts.sample.cycle.b"),
+            listOf("com.example.sample.cycle.a ↔ com.example.sample.cycle.b"),
             found(FindingKind.PackageCycles),
         )
     }
@@ -127,7 +127,7 @@ class AnalysisTest {
     @Test
     fun packagesHangFromTheirModulesRootPackage() {
         assertEquals(
-            listOf("cat.coeli.alerts.elsewhere expected under cat.coeli.alerts.sample"),
+            listOf("com.example.elsewhere expected under com.example.sample"),
             found(FindingKind.PackagesOutsideModuleRoot),
         )
     }
@@ -136,12 +136,12 @@ class AnalysisTest {
     fun membersNeedOnlyTheVisibilityTheirUsesNeed() {
         assertEquals(
             listOf(
-                "cat.coeli.alerts.sample.cycle.b.B() public → internal",
-                "cat.coeli.alerts.sample.domain.Report.decorated() public → private",
-                "cat.coeli.alerts.sample.domain.Report.title public → private",
-                "cat.coeli.alerts.sample.domain.ReportKt.readsAFile(String) public → internal",
-                "cat.coeli.alerts.sample.domain.ReportKt.usedByOwnTests() public → internal",
-                "cat.coeli.alerts.sample.domain.ReportKt.usedInModule() public → internal",
+                "com.example.sample.cycle.b.B() public → internal",
+                "com.example.sample.domain.Report.decorated() public → private",
+                "com.example.sample.domain.Report.title public → private",
+                "com.example.sample.domain.ReportKt.readsAFile(String) public → internal",
+                "com.example.sample.domain.ReportKt.usedByOwnTests() public → internal",
+                "com.example.sample.domain.ReportKt.usedInModule() public → internal",
             ),
             found(FindingKind.MembersTooVisible),
         )
@@ -151,9 +151,9 @@ class AnalysisTest {
     fun membersNothingUsesButOtherModulesTestsAreUnused() {
         assertEquals(
             listOf(
-                "cat.coeli.alerts.elsewhere.Stray()",
-                "cat.coeli.alerts.sample.domain.ReportKt.neverUsed()",
-                "cat.coeli.alerts.sample.domain.ReportKt.usedByOtherModulesTests() used only by tests of other modules",
+                "com.example.elsewhere.Stray()",
+                "com.example.sample.domain.ReportKt.neverUsed()",
+                "com.example.sample.domain.ReportKt.usedByOtherModulesTests() used only by tests of other modules",
             ),
             found(FindingKind.UnusedMembers),
         )
@@ -171,7 +171,7 @@ class AnalysisTest {
     fun onlyTheCatalogueAllowsSuppressions() {
         assertEquals(
             listOf(
-                "MagicNumber modules/sample/src/main/kotlin/cat/coeli/alerts/sample/domain/Suppressed.kt",
+                "MagicNumber modules/sample/src/main/kotlin/com/example/sample/domain/Suppressed.kt",
             ),
             found(FindingKind.ForbiddenSuppressions),
         )

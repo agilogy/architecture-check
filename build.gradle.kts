@@ -31,11 +31,11 @@ detekt {
     config.setFrom(file("config/detekt/detekt.yml"))
 }
 
+// The fixtures AnalysisTest analyses are written to break the rules.
+tasks.withType<Detekt>().configureEach { exclude("com/example/**") }
+
 // The detekt tasks with type resolution (detektMain, detektTest…) apply more rules than the plain
 // `detekt` task, which they replace in `check`.
-// The fixtures AnalysisTest analyses are written to break the rules.
-tasks.withType<Detekt>().configureEach { exclude("cat/coeli/alerts/**") }
-
 tasks.named("check") {
     setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name == "detekt" })
     dependsOn(

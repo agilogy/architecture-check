@@ -1,7 +1,7 @@
-package cat.coeli.alerts.sample.infrastructure
+package com.example.sample.infrastructure
 
-import cat.coeli.alerts.sample.domain.readsAFile
-import cat.coeli.alerts.sample.domain.usedInModule
+import com.example.sample.domain.readsAFile
+import com.example.sample.domain.usedInModule
 import java.util.zip.CRC32
 
 class UsesAnUncataloguedLibrary {

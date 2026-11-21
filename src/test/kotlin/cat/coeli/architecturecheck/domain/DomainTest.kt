@@ -52,7 +52,7 @@ class LayerTest {
 class CatalogueTest {
     private val catalogue =
         Catalogue(
-            "cat.coeli.alerts",
+            "com.example",
             mapOf(
                 "java" to Layer.Helper,
                 "java.lang.System" to Layer.Infrastructure,
@@ -200,8 +200,8 @@ class SourceTextsTest {
     @Test
     fun aModulesRootPackageIsItsDirectoryNameWithoutDashes() {
         assertEquals(
-            "cat.coeli.alerts.testutils",
-            rootPackageOf("cat.coeli.alerts", "modules/test-utils"),
+            "com.example.testutils",
+            rootPackageOf("com.example", "modules/test-utils"),
         )
     }
 
@@ -209,17 +209,17 @@ class SourceTextsTest {
     fun aPackageOutsideTheRootIsCutWhereItLeavesIt() {
         val outside =
             packagesOutsideRootOf(
-                "cat.coeli.alerts",
+                "com.example",
                 "modules/weather",
                 setOf(
-                    "cat.coeli.alerts.weather.domain",
-                    "cat.coeli.alerts.other.domain",
-                    "cat.coeli.alerts.other.x",
+                    "com.example.weather.domain",
+                    "com.example.other.domain",
+                    "com.example.other.x",
                     "org.x",
                 ),
             )
 
-        assertEquals(listOf("cat.coeli.alerts.other", "org"), outside)
+        assertEquals(listOf("com.example.other", "org"), outside)
     }
 
     @Test

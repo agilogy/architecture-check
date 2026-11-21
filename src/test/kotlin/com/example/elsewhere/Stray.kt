@@ -1,4 +1,4 @@
-package cat.coeli.alerts.elsewhere
+package com.example.elsewhere
 
 // Compiled into the `src/main` of `modules/sample`, whose root package it doesn't hang from.
 

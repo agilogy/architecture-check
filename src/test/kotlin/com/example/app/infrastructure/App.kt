@@ -1,10 +1,10 @@
-package cat.coeli.alerts.app.infrastructure
+package com.example.app.infrastructure
 
-import cat.coeli.alerts.app.domain.Greeter
-import cat.coeli.alerts.sample.cycle.a.A
-import cat.coeli.alerts.sample.domain.Report
-import cat.coeli.alerts.sample.infrastructure.OnlyNeedsTheDomain
-import cat.coeli.alerts.sample.infrastructure.UsesAnUncataloguedLibrary
+import com.example.app.domain.Greeter
+import com.example.sample.cycle.a.A
+import com.example.sample.domain.Report
+import com.example.sample.infrastructure.OnlyNeedsTheDomain
+import com.example.sample.infrastructure.UsesAnUncataloguedLibrary
 
 // Compiled into the `src/main` of the app `apps/app`.
 

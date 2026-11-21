@@ -1,4 +1,4 @@
-package cat.coeli.alerts.sample.domain
+package com.example.sample.domain
 
 import java.io.File
 
