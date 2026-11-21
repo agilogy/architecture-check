@@ -270,12 +270,11 @@ internal class ClassAnalysis(
         placements.entries
             .groupBy(keySelector = { it.value.module }, valueTransform = { it.key.packageName })
             .flatMap { (module, packages) ->
-                val directory = modulesByPath.getValue(module).directoryName
-                val root =
-                    rootPackageOf(ownPackage = catalogue.ownPackage, moduleDirectory = directory)
+                val name = modulesByPath.getValue(module).name
+                val root = rootPackageOf(ownPackage = catalogue.ownPackage, moduleName = name)
                 packagesOutsideRootOf(
                         ownPackage = catalogue.ownPackage,
-                        moduleDirectory = directory,
+                        moduleName = name,
                         packageNames = packages.toSet(),
                     )
                     .map { outside ->

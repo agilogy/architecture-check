@@ -44,7 +44,7 @@ internal enum class FindingKind(val title: String, val explanation: String) {
     ),
     PackagesOutsideModuleRoot(
         "Packages outside their module's root package",
-        "A package that doesn't hang from `ownPackage` in `$CATALOGUE_FILE`, followed by the module's directory " +
+        "A package that doesn't hang from `ownPackage` in `$CATALOGUE_FILE`, followed by the module's Gradle " +
             "name without dashes, shown as the branch where it leaves it. Move the package under the root.",
     ),
     MembersTooVisible(

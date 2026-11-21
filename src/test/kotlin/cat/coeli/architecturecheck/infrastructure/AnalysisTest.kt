@@ -53,13 +53,19 @@ class AnalysisTest {
             "@Suppress(\"MagicNumber\") val y = 42",
         )
         listOf(
-            Module(path = ".", directory = root, isApp = false),
+            Module(path = ".", directory = root, name = "repository", isApp = false),
             Module(
                 path = "modules/sample",
                 directory = File(root, "modules/sample"),
+                name = "sample",
                 isApp = false,
             ),
-            Module(path = "apps/app", directory = File(root, "apps/app"), isApp = true),
+            Module(
+                path = "apps/app",
+                directory = File(root, "apps/app"),
+                name = "app",
+                isApp = true,
+            ),
         )
     }
 

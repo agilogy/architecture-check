@@ -17,8 +17,8 @@ It finds:
   on the layers above it. A package's layer is its deepest `domain` or `infrastructure` segment
   (`x.domain.alerts` is Domain, `x.infrastructure.postgres` Infrastructure); any other package is Helper.
 - **Modules** are the build's projects with the Kotlin JVM plugin, the root one included. A module's root
-  package is the catalogue's `ownPackage` followed by its directory's name without dashes: in
-  `cat.coeli.alerts`, `modules/test-utils` hangs from `cat.coeli.alerts.testutils`.
+  package is the catalogue's `ownPackage` followed by its Gradle name without dashes: in
+  `cat.coeli.alerts`, the project `test-utils` hangs from `cat.coeli.alerts.testutils`.
 - **Apps** are the projects with the `application` plugin: nobody depends on them, so `public` is as good as
   `internal` there.
 - **Tests of other modules don't count** as uses of a module's `src/main`: they reach it through its
@@ -56,6 +56,8 @@ instead.
 pluginManagement {
     repositories {
         gradlePluginPortal()
+        // The plugin's dependencies (ArchUnit, kotlin-metadata-jvm…).
+        mavenCentral()
         maven("https://maven.pkg.github.com/agilogy/architecture-check") {
             name = "GitHubPackages"
             credentials(PasswordCredentials::class)

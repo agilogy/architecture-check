@@ -14,12 +14,15 @@ internal data class Placement(val module: String, val sourceSet: SourceSet)
 
 /**
  * A project of the build: [path] is its directory from the repository root, `.` for the root
- * project. [isApp] for an application, which no other module depends on.
+ * project, and [name] its Gradle name. [isApp] for an application, which no other module depends
+ * on.
  */
-internal class Module(val path: String, private val directory: File, internal val isApp: Boolean) {
-    internal val directoryName: String
-        get() = directory.name
-
+internal class Module(
+    val path: String,
+    private val directory: File,
+    internal val name: String,
+    internal val isApp: Boolean,
+) {
     internal val buildScript: File
         get() = File(directory, BUILD_SCRIPT)
 

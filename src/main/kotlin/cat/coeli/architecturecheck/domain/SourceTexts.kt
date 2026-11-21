@@ -1,16 +1,16 @@
 package cat.coeli.architecturecheck.domain
 
 /** In `cat.coeli.alerts`, `modules/test-utils` hangs from `cat.coeli.alerts.testutils`. */
-internal fun rootPackageOf(ownPackage: String, moduleDirectory: String): String =
-    "$ownPackage." + moduleDirectory.replace(oldValue = "-", newValue = "")
+internal fun rootPackageOf(ownPackage: String, moduleName: String): String =
+    "$ownPackage." + moduleName.replace(oldValue = "-", newValue = "")
 
 /** Each branch that leaves the module's root package, cut at the segment where it leaves it. */
 internal fun packagesOutsideRootOf(
     ownPackage: String,
-    moduleDirectory: String,
+    moduleName: String,
     packageNames: Set<String>,
 ): List<String> {
-    val root = rootPackageOf(ownPackage, moduleDirectory).split('.')
+    val root = rootPackageOf(ownPackage, moduleName).split('.')
     return packageNames
         .asSequence()
         .map { it.split('.') }
