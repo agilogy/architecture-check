@@ -1,6 +1,7 @@
 package cat.coeli.architecturecheck.infrastructure
 
 import cat.coeli.architecturecheck.domain.Catalogue
+import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.Layer
@@ -31,7 +32,7 @@ class AnalysisTest {
             allowedSuppressions = setOf("Allowed"),
         )
 
-    private val findings: List<Finding> by lazy {
+    private val modules: List<Module> by lazy {
         compiled("com/example/sample/domain", "modules/sample", SourceSet.Main)
         compiled("com/example/sample/infrastructure", "modules/sample", SourceSet.Main)
         compiled("com/example/sample/cycle", "modules/sample", SourceSet.Main)
@@ -61,8 +62,25 @@ class AnalysisTest {
             """
                 .trimIndent(),
         )
-        analyze(root, catalogue)
+        file(
+            "modules/sample/src/main/kotlin/com/example/elsewhere/Suppressed.kt",
+            "@Suppress(\"MagicNumber\") val y = 42",
+        )
+        listOf(
+            Module(path = ".", directory = root, isApp = false),
+            Module(
+                path = "modules/sample",
+                directory = File(root, "modules/sample"),
+                isApp = false,
+            ),
+            Module(path = "apps/app", directory = File(root, "apps/app"), isApp = true),
+        )
     }
+
+    private val findings: List<Finding> by lazy { analyzed() }
+
+    private fun analyzed(excluded: Set<String> = emptySet()): List<Finding> =
+        analyze(modules = modules, catalogue = catalogue, excluded = ExcludedPackages(excluded))
 
     @AfterTest
     fun deleteRepository() {
@@ -81,8 +99,8 @@ class AnalysisTest {
         File(root, path).apply { parentFile.mkdirs() }.writeText(text)
     }
 
-    private fun found(kind: FindingKind): List<String> =
-        findings
+    private fun found(kind: FindingKind, among: List<Finding> = findings): List<String> =
+        among
             .filter { it.kind == kind }
             .map { listOfNotNull(it.subject, it.detail).joinToString(" ") }
 
@@ -171,9 +189,32 @@ class AnalysisTest {
     fun onlyTheCatalogueAllowsSuppressions() {
         assertEquals(
             listOf(
+                "MagicNumber modules/sample/src/main/kotlin/com/example/elsewhere/Suppressed.kt",
                 "MagicNumber modules/sample/src/main/kotlin/com/example/sample/domain/Suppressed.kt",
             ),
             found(FindingKind.ForbiddenSuppressions),
+        )
+    }
+
+    @Test
+    fun excludedPackagesAreNotSeen() {
+        val findings =
+            analyzed(excluded = setOf("com.example.elsewhere", "com.example.sample.tests"))
+
+        assertEquals(emptyList(), found(FindingKind.PackagesOutsideModuleRoot, findings))
+        assertEquals(
+            listOf(
+                "com.example.sample.domain.ReportKt.neverUsed()",
+                "com.example.sample.domain.ReportKt.usedByOtherModulesTests() used only by tests of other modules",
+                "com.example.sample.domain.ReportKt.usedByOwnTests()",
+            ),
+            found(FindingKind.UnusedMembers, findings),
+        )
+        assertEquals(
+            listOf(
+                "MagicNumber modules/sample/src/main/kotlin/com/example/sample/domain/Suppressed.kt",
+            ),
+            found(FindingKind.ForbiddenSuppressions, findings),
         )
     }
 }

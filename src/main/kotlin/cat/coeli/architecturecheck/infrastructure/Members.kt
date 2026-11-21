@@ -1,6 +1,7 @@
 package cat.coeli.architecturecheck.infrastructure
 
 import cat.coeli.architecturecheck.domain.Catalogue
+import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.SourceLine
@@ -22,6 +23,7 @@ internal fun memberFindingsOf(
     placements: Map<JavaClass, Placement>,
     modules: List<Module>,
     catalogue: Catalogue,
+    excluded: ExcludedPackages,
     sourceLineOf: (JavaClass, Placement, SourceCodeLocation) -> SourceLine?,
 ): List<Finding> {
     val metadata = placements.keys.associateWith { it.kotlinMetadata() }
@@ -42,6 +44,7 @@ internal fun memberFindingsOf(
             byHandle = byHandle,
             placements = placements,
             catalogue = catalogue,
+            excluded = excluded,
         )
     val overridersByRoot = overridersByRootOf(declarations, byHandle)
     return declarations
@@ -63,10 +66,17 @@ private fun usesByRootOf(
     byHandle: Map<JavaMember, Declaration>,
     placements: Map<JavaClass, Placement>,
     catalogue: Catalogue,
+    excluded: ExcludedPackages,
 ): Map<Declaration, Set<UseScope>> =
     declarations
         .flatMap { declaration ->
-            val uses = usesOf(declaration, placements, catalogue)
+            val uses =
+                usesOf(
+                    declaration = declaration,
+                    placements = placements,
+                    catalogue = catalogue,
+                    excluded = excluded,
+                )
             rootsOf(declaration, byHandle).map { it to uses }
         }
         .groupBy({ it.first }, { it.second })
@@ -137,11 +147,12 @@ private fun usesOf(
     declaration: Declaration,
     placements: Map<JavaClass, Placement>,
     catalogue: Catalogue,
+    excluded: ExcludedPackages,
 ): Set<UseScope> =
     declaration.handles
         .asSequence()
         .flatMap { it.accessesToSelf }
-        .filterNot { it.origin in declaration.handles }
+        .filterNot { it.origin in declaration.handles || it.originOwner.packageName in excluded }
         .map { access ->
             val origin = access.originOwner
             val placement = placements[origin]

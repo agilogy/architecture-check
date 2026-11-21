@@ -1,11 +1,14 @@
 package cat.coeli.architecturecheck.infrastructure
 
+import cat.coeli.architecturecheck.domain.ExcludedPackages
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
@@ -43,12 +46,32 @@ abstract class ArchitectureCheck : DefaultTask() {
     /** Where each file of the repository can be seen, such as the commit on GitHub. */
     @get:Input @get:Optional abstract val sourceLinkBase: Property<String>
 
+    /**
+     * Each module's directory from the repository root, `.` for the root project, and whether it is
+     * an app.
+     */
+    @get:Input abstract val modules: MapProperty<String, Boolean>
+
+    @get:Input abstract val excludedPackages: SetProperty<String>
+
     @get:OutputDirectory abstract val reportDirectory: DirectoryProperty
 
     @TaskAction
     fun check() {
         val root = repositoryRoot.get().asFile
-        val findings = analyze(root, readCatalogue(catalogue.get().asFile.readText()))
+        val findings =
+            analyze(
+                modules =
+                    modules.get().map { (path, isApp) ->
+                        Module(
+                            path = path,
+                            directory = root.resolve(path).normalize(),
+                            isApp = isApp,
+                        )
+                    },
+                catalogue = readCatalogue(catalogue.get().asFile.readText()),
+                excluded = ExcludedPackages(excludedPackages.get()),
+            )
         val report = Report(findings, sourceLinkBase.orNull)
         val directory = reportDirectory.get().asFile
         directory.resolve("report.md").writeText(report.markdown())
