@@ -31,7 +31,7 @@ import org.gradle.work.DisableCachingByDefault
 @DisableCachingByDefault(
     because = "It reads every module's classes, and fails rather than produce a result to reuse",
 )
-abstract class ArchitectureCheck : DefaultTask() {
+abstract class ArchitectureCheckTask : DefaultTask() {
     @get:Internal abstract val repositoryRoot: DirectoryProperty
 
     @get:InputFile

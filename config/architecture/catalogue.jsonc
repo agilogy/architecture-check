@@ -17,7 +17,7 @@
     // Gradle and the builds applying the plugin use them.
     "externalApi": [
         "cat.coeli.architecturecheck.infrastructure.ArchitectureCheckPlugin",
-        "cat.coeli.architecturecheck.infrastructure.ArchitectureCheck",
+        "cat.coeli.architecturecheck.infrastructure.ArchitectureCheckTask",
         "cat.coeli.architecturecheck.infrastructure.ArchitectureCheckExtension"
     ]
 }

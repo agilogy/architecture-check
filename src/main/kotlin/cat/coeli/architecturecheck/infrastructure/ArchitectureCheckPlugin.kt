@@ -25,7 +25,7 @@ class ArchitectureCheckPlugin : Plugin<Project> {
         val extension =
             project.extensions.create("architectureCheck", ArchitectureCheckExtension::class.java)
         val architectureCheck =
-            project.tasks.register("architectureCheck", ArchitectureCheck::class.java) { task ->
+            project.tasks.register("architectureCheck", ArchitectureCheckTask::class.java) { task ->
                 task.configureFor(project)
                 task.excludedPackages.set(extension.excludedPackages)
                 task.modules.put(".", project.isApp())
@@ -43,7 +43,7 @@ class ArchitectureCheckPlugin : Plugin<Project> {
 // A provider, as the application plugin may come after the Kotlin one.
 private fun Project.isApp() = provider { pluginManager.hasPlugin("application") }
 
-private fun ArchitectureCheck.configureFor(project: Project) {
+private fun ArchitectureCheckTask.configureFor(project: Project) {
     val providers = project.providers
     group = "verification"
     description =
@@ -64,7 +64,7 @@ private fun ArchitectureCheck.configureFor(project: Project) {
     )
 }
 
-private fun ArchitectureCheck.analyse(module: Project, root: Project) {
+private fun ArchitectureCheckTask.analyse(module: Project, root: Project) {
     val path = module.projectDir.relativeTo(root.projectDir).invariantSeparatorsPath.ifEmpty { "." }
     modules.put(path, module.isApp())
     moduleNames.put(path, module.name)
