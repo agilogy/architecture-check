@@ -53,6 +53,9 @@ abstract class ArchitectureCheck : DefaultTask() {
      */
     @get:Input abstract val modules: MapProperty<String, Boolean>
 
+    /** Each module's Gradle name, by its directory from the repository root. */
+    @get:Input abstract val moduleNames: MapProperty<String, String>
+
     @get:Input abstract val excludedPackages: SetProperty<String>
 
     @get:OutputDirectory abstract val reportDirectory: DirectoryProperty
@@ -67,6 +70,7 @@ abstract class ArchitectureCheck : DefaultTask() {
                         Module(
                             path = path,
                             directory = root.resolve(path).normalize(),
+                            name = moduleNames.get().getValue(path),
                             isApp = isApp,
                         )
                     },

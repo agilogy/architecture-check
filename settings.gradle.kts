@@ -1,6 +1,8 @@
 pluginManagement {
     repositories {
         gradlePluginPortal()
+        // Where the plugin's own dependencies (ArchUnit, kotlin-metadata-jvm…) are.
+        mavenCentral()
         // This plugin's own published versions, which check this build. GitHub Packages asks for a
         // token with read:packages even to read: GitHubPackagesUsername and GitHubPackagesPassword.
         maven("https://maven.pkg.github.com/agilogy/architecture-check") {

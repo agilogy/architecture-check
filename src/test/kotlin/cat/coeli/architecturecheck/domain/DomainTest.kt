@@ -198,7 +198,7 @@ class VisibilityTest {
 
 class SourceTextsTest {
     @Test
-    fun aModulesRootPackageIsItsDirectoryNameWithoutDashes() {
+    fun aModulesRootPackageIsItsNameWithoutDashes() {
         assertEquals(
             "com.example.testutils",
             rootPackageOf("com.example", "test-utils"),

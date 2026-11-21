@@ -29,6 +29,7 @@ class ArchitectureCheckPlugin : Plugin<Project> {
                 task.configureFor(project)
                 task.excludedPackages.set(extension.excludedPackages)
                 task.modules.put(".", project.isApp())
+                task.moduleNames.put(".", project.name)
             }
         project.allprojects.forEach { module ->
             module.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
@@ -64,10 +65,9 @@ private fun ArchitectureCheck.configureFor(project: Project) {
 }
 
 private fun ArchitectureCheck.analyse(module: Project, root: Project) {
-    modules.put(
-        module.projectDir.relativeTo(root.projectDir).invariantSeparatorsPath.ifEmpty { "." },
-        module.isApp(),
-    )
+    val path = module.projectDir.relativeTo(root.projectDir).invariantSeparatorsPath.ifEmpty { "." }
+    modules.put(path, module.isApp())
+    moduleNames.put(path, module.name)
     dependsOn(module.tasks.matching { it.name in compilations })
     analysedFiles.from(
         module.layout.buildDirectory.dir("classes"),
