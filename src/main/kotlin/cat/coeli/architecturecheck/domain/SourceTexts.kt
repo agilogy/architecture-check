@@ -29,7 +29,7 @@ internal fun packagesOutsideRootOf(
 }
 
 /** A declaration of a build script, or a suppression of a source file, at a line counted from 1. */
-data class TextFinding(val subject: String, val line: Int)
+internal data class TextFinding(val subject: String, val line: Int)
 
 private val CALL_WITH_STRING_LITERAL =
     Regex("""\b(\w+)\s*\(\s*(?:(?:platform|enforcedPlatform|testFixtures)\s*\(\s*)?"([^"\n]*)"""")

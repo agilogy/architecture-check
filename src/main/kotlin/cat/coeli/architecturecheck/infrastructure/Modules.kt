@@ -10,13 +10,13 @@ enum class SourceSet(internal val directoryName: String) {
 }
 
 /** Where a class was compiled from. */
-data class Placement(val module: String, val sourceSet: SourceSet)
+internal data class Placement(val module: String, val sourceSet: SourceSet)
 
 /**
  * A project of the build: [path] is its directory from the repository root, `.` for the root
  * project. [isApp] for an application, which no other module depends on.
  */
-class Module(val path: String, private val directory: File, internal val isApp: Boolean) {
+internal class Module(val path: String, private val directory: File, internal val isApp: Boolean) {
     internal val directoryName: String
         get() = directory.name
 

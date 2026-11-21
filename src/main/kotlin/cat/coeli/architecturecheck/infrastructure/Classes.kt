@@ -83,11 +83,9 @@ private fun JavaClass.sourceFilePath(): String =
         "/" +
         (source.orElse(null)?.fileName?.orElse(null) ?: "${simpleName}.kt")
 
-/**
- * Nested, local and anonymous classes, lambdas included, are judged as part of the top-level class
- * around them.
- */
-internal fun JavaClass.topLevelName(): String =
+// Nested, local and anonymous classes, lambdas included, are judged as part of the top-level class
+// around them.
+private fun JavaClass.topLevelName(): String =
     generateSequence(this) { it.enclosingClass.orElse(null) }.last().name
 
 /**
