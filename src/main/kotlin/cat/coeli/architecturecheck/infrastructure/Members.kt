@@ -4,7 +4,9 @@ import cat.coeli.architecturecheck.domain.Catalogue
 import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
+import cat.coeli.architecturecheck.domain.Placement
 import cat.coeli.architecturecheck.domain.SourceLine
+import cat.coeli.architecturecheck.domain.SourceSet
 import cat.coeli.architecturecheck.domain.UseScope
 import cat.coeli.architecturecheck.domain.Verdict
 import cat.coeli.architecturecheck.domain.Visibility

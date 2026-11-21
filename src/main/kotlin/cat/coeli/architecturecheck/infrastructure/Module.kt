@@ -1,16 +1,7 @@
 package cat.coeli.architecturecheck.infrastructure
 
+import cat.coeli.architecturecheck.domain.SourceSet
 import java.io.File
-
-/** The source sets whose classes are read; [Test]'s only for what they use of the others. */
-enum class SourceSet(internal val directoryName: String) {
-    Main("main"),
-    TestFixtures("testFixtures"),
-    Test("test"),
-}
-
-/** Where a class was compiled from. */
-internal data class Placement(val module: String, val sourceSet: SourceSet)
 
 /**
  * A project of the build: [path] is its directory from the repository root, `.` for the root

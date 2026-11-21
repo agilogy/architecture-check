@@ -5,7 +5,9 @@ import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.Layer
+import cat.coeli.architecturecheck.domain.Placement
 import cat.coeli.architecturecheck.domain.SourceLine
+import cat.coeli.architecturecheck.domain.SourceSet
 import cat.coeli.architecturecheck.domain.cyclesOf
 import cat.coeli.architecturecheck.domain.isPlacedTooLow
 import cat.coeli.architecturecheck.domain.layerOf

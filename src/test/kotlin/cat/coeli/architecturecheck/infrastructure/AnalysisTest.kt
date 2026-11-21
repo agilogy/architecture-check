@@ -5,6 +5,7 @@ import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.Layer
+import cat.coeli.architecturecheck.domain.SourceSet
 import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.AfterTest

@@ -1,5 +1,6 @@
 package cat.coeli.architecturecheck.infrastructure
 
+import cat.coeli.architecturecheck.domain.Placement
 import cat.coeli.architecturecheck.domain.Visibility
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaCodeUnit
