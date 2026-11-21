@@ -112,5 +112,6 @@ internal fun readCatalogue(text: String): Catalogue {
             },
         allowedSuppressions = strings("allowedSuppressions"),
         testSupportModules = strings("testSupportModules"),
+        externalApi = strings("externalApi"),
     )
 }

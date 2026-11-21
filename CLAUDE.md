@@ -6,7 +6,7 @@ Gradle plugin `cat.coeli.architecture-check`: applied to a build's root project,
 `architectureCheck` (run by `check`), which reads the compiled classes of every project of the build with the
 Kotlin JVM plugin, the root one included, and fails on any finding. A project with the `application` plugin is
 an app. Its configuration is the consuming repository's `config/architecture/catalogue.jsonc` (`ownPackage`,
-`libraries`, `allowedSuppressions`, `testSupportModules`) and the extension's `excludedPackages`
+`libraries`, `allowedSuppressions`, `testSupportModules`, `externalApi`) and the extension's `excludedPackages`
 (`architectureCheck { excludedPackages = setOf("com.example") }`). The rules are in `FindingKind`.
 
 ## Commands

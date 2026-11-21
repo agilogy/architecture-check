@@ -62,9 +62,12 @@ private val STRING_LITERAL = Regex(""""([^"\n]*)"""")
  * Every rule a `@Suppress`, `@file:Suppress` or `@SuppressWarnings` of a Kotlin file names but
  * [allowed].
  */
-internal fun forbiddenSuppressionsOf(source: String, allowed: Set<String>): List<TextFinding> =
-    SUPPRESSION.findAll(source)
-        .filterNot { source.isCommentedOut(it.range.first) }
+internal fun forbiddenSuppressionsOf(source: String, allowed: Set<String>): List<TextFinding> {
+    val literals = STRING_OR_RAW_STRING.findAll(source).map { it.range }.toList()
+    return SUPPRESSION.findAll(source)
+        .filterNot { match ->
+            source.isCommentedOut(match.range.first) || literals.any { match.range.first in it }
+        }
         .flatMap { match ->
             STRING_LITERAL.findAll(match.groupValues[1])
                 .map { it.groupValues[1] }
@@ -72,6 +75,10 @@ internal fun forbiddenSuppressionsOf(source: String, allowed: Set<String>): List
                 .map { rule -> TextFinding(rule, source.lineOf(match.range.first)) }
         }
         .toList()
+}
+
+// A raw string first, so that its quotes aren't read as empty strings.
+private val STRING_OR_RAW_STRING = Regex("""\"\"\"[\s\S]*?\"\"\"|"(?:\\.|[^"\\\n])*\"""")
 
 private fun String.lineOf(index: Int): Int =
     substring(startIndex = 0, endIndex = index).count { it == '\n' } + 1

@@ -266,6 +266,26 @@ class SourceTextsTest {
             found,
         )
     }
+
+    @Test
+    fun aSuppressionInsideAStringIsText() {
+        val tripleQuote = "\"".repeat(3)
+        val found =
+            forbiddenSuppressionsOf(
+                listOf(
+                        """val text = "@Suppress(\"InString\")"""",
+                        "val raw = $tripleQuote",
+                        """    @Suppress("InRawString")""",
+                        tripleQuote,
+                        """@Suppress("Real")""",
+                        "fun y() = Unit",
+                    )
+                    .joinToString("\n"),
+                allowed = emptySet(),
+            )
+
+        assertEquals(listOf(TextFinding("Real", 5)), found)
+    }
 }
 
 class ExcludedPackagesTest {
