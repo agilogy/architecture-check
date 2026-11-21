@@ -201,7 +201,7 @@ class SourceTextsTest {
     fun aModulesRootPackageIsItsDirectoryNameWithoutDashes() {
         assertEquals(
             "com.example.testutils",
-            rootPackageOf("com.example", "modules/test-utils"),
+            rootPackageOf("com.example", "test-utils"),
         )
     }
 
@@ -210,7 +210,7 @@ class SourceTextsTest {
         val outside =
             packagesOutsideRootOf(
                 "com.example",
-                "modules/weather",
+                "weather",
                 setOf(
                     "com.example.weather.domain",
                     "com.example.other.domain",
@@ -265,5 +265,21 @@ class SourceTextsTest {
             listOf(TextFinding("MagicNumber", 1), TextFinding("detekt:LongMethod", 3)),
             found,
         )
+    }
+}
+
+class ExcludedPackagesTest {
+    private val excluded = ExcludedPackages(setOf("com.example"))
+
+    @Test
+    fun aPackageIsExcludedWithItsSubpackages() {
+        assertTrue("com.example" in excluded)
+        assertTrue("com.example.sample" in excluded)
+    }
+
+    @Test
+    fun aPackageThatOnlySharesThePrefixIsNotExcluded() {
+        assertFalse("com.examples" in excluded)
+        assertFalse("com" in excluded)
     }
 }

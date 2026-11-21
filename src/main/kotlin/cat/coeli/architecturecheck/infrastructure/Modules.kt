@@ -13,12 +13,12 @@ enum class SourceSet(internal val directoryName: String) {
 data class Placement(val module: String, val sourceSet: SourceSet)
 
 /**
- * [path] is the module's directory from the repository root, `.` for the root build script, which
- * has no sources.
+ * A project of the build: [path] is its directory from the repository root, `.` for the root
+ * project. [isApp] for an application, which no other module depends on.
  */
-class Module(val path: String, private val directory: File) {
-    internal val isApp: Boolean
-        get() = path.startsWith("apps/")
+class Module(val path: String, private val directory: File, internal val isApp: Boolean) {
+    internal val directoryName: String
+        get() = directory.name
 
     internal val buildScript: File
         get() = File(directory, BUILD_SCRIPT)
@@ -37,17 +37,3 @@ class Module(val path: String, private val directory: File) {
 }
 
 private const val BUILD_SCRIPT = "build.gradle.kts"
-
-private val MODULE_PARENTS = listOf("apps", "modules")
-
-/**
- * The root build script and every directory of `apps` and `modules` with a build script, like
- * `settings.gradle.kts`.
- */
-internal fun discoverModules(root: File): List<Module> =
-    listOf(Module(".", root)) +
-        MODULE_PARENTS.asSequence()
-            .flatMap { parent -> File(root, parent).listFiles().orEmpty().toList() }
-            .filter { File(it, BUILD_SCRIPT).isFile }
-            .map { Module(it.relativeTo(root).invariantSeparatorsPath, it) }
-            .sortedBy { it.path }

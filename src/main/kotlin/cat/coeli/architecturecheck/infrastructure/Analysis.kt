@@ -1,6 +1,7 @@
 package cat.coeli.architecturecheck.infrastructure
 
 import cat.coeli.architecturecheck.domain.Catalogue
+import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.Layer
@@ -15,23 +16,37 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/** Every finding of the repository at [root], sorted by kind, module and subject. */
-internal fun analyze(root: File, catalogue: Catalogue): List<Finding> {
-    val modules = discoverModules(root)
-    val placements = importClasses(modules)
-    val classes = ClassAnalysis(modules, placements, catalogue)
+/** Every finding of [modules], sorted by kind, module, subject and detail. */
+internal fun analyze(
+    modules: List<Module>,
+    catalogue: Catalogue,
+    excluded: ExcludedPackages,
+): List<Finding> {
+    val placements = importClasses(modules, excluded)
+    val classes =
+        ClassAnalysis(
+            modules = modules,
+            placements = placements,
+            catalogue = catalogue,
+            excluded = excluded,
+        )
     return (classes.findings() +
             memberFindingsOf(
                 placements = placements,
                 modules = modules,
                 catalogue = catalogue,
+                excluded = excluded,
                 sourceLineOf = classes::sourceLineOf,
             ) +
-            modules.flatMap { textFindingsOf(it, catalogue) })
-        .sortedWith(compareBy({ it.kind }, { it.module }, { it.subject }))
+            modules.flatMap { textFindingsOf(it, catalogue, excluded) })
+        .sortedWith(compareBy({ it.kind }, { it.module }, { it.subject }, { it.detail }))
 }
 
-private fun textFindingsOf(module: Module, catalogue: Catalogue): List<Finding> {
+private fun textFindingsOf(
+    module: Module,
+    catalogue: Catalogue,
+    excluded: ExcludedPackages,
+): List<Finding> {
     val buildScript = module.buildScript
     val dependencies =
         stringDependenciesOf(buildScript.readText()).map { dependency ->
@@ -43,30 +58,34 @@ private fun textFindingsOf(module: Module, catalogue: Catalogue): List<Finding> 
             )
         }
     val suppressions =
-        if (module.path == ".") {
-            emptyList()
-        } else {
-            SourceSet.entries
-                .flatMap { sourceSet ->
-                    module.sourceDirectoryOf(sourceSet).walkTopDown().filter {
-                        it.extension == "kt"
-                    }
+        SourceSet.entries
+            .flatMap { sourceSet ->
+                val directory = module.sourceDirectoryOf(sourceSet)
+                directory.walkTopDown().filter { file ->
+                    file.extension == "kt" && packageOf(file, directory) !in excluded
                 }
-                .flatMap { file ->
-                    forbiddenSuppressionsOf(file.readText(), catalogue.allowedSuppressions).map {
-                        suppression ->
-                        Finding(
-                            kind = FindingKind.ForbiddenSuppressions,
-                            module = module.path,
-                            subject = suppression.subject,
-                            detail = module.pathOf(file),
-                            source = SourceLine(module.pathOf(file), suppression.line),
-                        )
-                    }
+            }
+            .flatMap { file ->
+                forbiddenSuppressionsOf(file.readText(), catalogue.allowedSuppressions).map {
+                    suppression ->
+                    Finding(
+                        kind = FindingKind.ForbiddenSuppressions,
+                        module = module.path,
+                        subject = suppression.subject,
+                        detail = module.pathOf(file),
+                        source = SourceLine(module.pathOf(file), suppression.line),
+                    )
                 }
-        }
+            }
     return dependencies + suppressions
 }
+
+// The package its directory stands for, as the Kotlin convention wants.
+private fun packageOf(file: File, sourceDirectory: File): String =
+    file.parentFile
+        .relativeTo(sourceDirectory)
+        .invariantSeparatorsPath
+        .replace(oldChar = '/', newChar = '.')
 
 @OptIn(ExperimentalSerializationApi::class) private val jsonc = Json { allowComments = true }
 

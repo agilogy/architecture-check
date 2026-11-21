@@ -1,6 +1,7 @@
 package cat.coeli.architecturecheck.infrastructure
 
 import cat.coeli.architecturecheck.domain.Catalogue
+import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.Layer
@@ -17,7 +18,10 @@ import com.tngtech.archunit.core.importer.ClassFileImporter
 import java.io.File
 
 /** Every class compiled from the modules' source sets, with where it was compiled from. */
-internal fun importClasses(modules: List<Module>): Map<JavaClass, Placement> {
+internal fun importClasses(
+    modules: List<Module>,
+    excluded: ExcludedPackages,
+): Map<JavaClass, Placement> {
     val directories = modules.flatMap { module ->
         SourceSet.entries
             .map { module.classDirectoryOf(it) to Placement(module.path, it) }
@@ -31,6 +35,7 @@ internal fun importClasses(modules: List<Module>): Map<JavaClass, Placement> {
     } else {
         ClassFileImporter()
             .importPaths(directories.map { it.first.toPath() })
+            .filterNot { it.packageName in excluded }
             .mapNotNull { javaClass -> placementOf(javaClass, prefixes)?.let { javaClass to it } }
             .toMap()
     }
@@ -93,6 +98,7 @@ internal class ClassAnalysis(
     modules: List<Module>,
     private val placements: Map<JavaClass, Placement>,
     private val catalogue: Catalogue,
+    private val excluded: ExcludedPackages,
 ) {
     private val modulesByPath = modules.associateBy { it.path }
     private val ownClassNames = placements.keys.map { it.name }.toSet()
@@ -136,7 +142,9 @@ internal class ClassAnalysis(
 
     // A class of ours the import left out, such as one Kotlin inlined away, is nobody's.
     private fun isLibrary(target: JavaClass) =
-        target.packageName.isNotEmpty() && target.packageName !in ownPackages
+        target.packageName.isNotEmpty() &&
+            target.packageName !in ownPackages &&
+            target.packageName !in excluded
 
     private fun libraryLayerOf(reach: Reach): Layer? =
         catalogue.libraryLayerOf(
@@ -264,15 +272,22 @@ internal class ClassAnalysis(
         placements.entries
             .groupBy(keySelector = { it.value.module }, valueTransform = { it.key.packageName })
             .flatMap { (module, packages) ->
-                packagesOutsideRootOf(catalogue.ownPackage, module, packages.toSet()).map { outside
-                    ->
-                    Finding(
-                        kind = FindingKind.PackagesOutsideModuleRoot,
-                        module = module,
-                        subject = outside,
-                        detail = "expected under ${rootPackageOf(catalogue.ownPackage, module)}",
+                val directory = modulesByPath.getValue(module).directoryName
+                val root =
+                    rootPackageOf(ownPackage = catalogue.ownPackage, moduleDirectory = directory)
+                packagesOutsideRootOf(
+                        ownPackage = catalogue.ownPackage,
+                        moduleDirectory = directory,
+                        packageNames = packages.toSet(),
                     )
-                }
+                    .map { outside ->
+                        Finding(
+                            kind = FindingKind.PackagesOutsideModuleRoot,
+                            module = module,
+                            subject = outside,
+                            detail = "expected under $root",
+                        )
+                    }
             }
 
     /** The source file where the package convention puts it, when it is there. */
