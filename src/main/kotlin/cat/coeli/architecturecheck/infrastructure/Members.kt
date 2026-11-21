@@ -7,6 +7,7 @@ import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.SourceLine
 import cat.coeli.architecturecheck.domain.UseScope
 import cat.coeli.architecturecheck.domain.Verdict
+import cat.coeli.architecturecheck.domain.Visibility
 import cat.coeli.architecturecheck.domain.verdictOf
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaCodeUnit
@@ -174,7 +175,13 @@ private fun usesOf(
                 else -> UseScope.Module
             }
         }
-        .toSet()
+        .toSet() +
+        setOfNotNull(
+            UseScope.OtherModule.takeIf {
+                declaration.visibility == Visibility.Public &&
+                    declaration.site.owner.name in catalogue.externalApi
+            },
+        )
 
 private fun Declaration.overridden(): List<JavaMethod> =
     handles.filterIsInstance<JavaMethod>().flatMap { it.overridden() }

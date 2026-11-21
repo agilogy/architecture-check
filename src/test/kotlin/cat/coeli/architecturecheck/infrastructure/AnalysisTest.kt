@@ -18,20 +18,6 @@ import kotlin.test.assertEquals
 class AnalysisTest {
     private val root = createTempDirectory("architecture-check").toFile()
 
-    private val catalogue =
-        Catalogue(
-            ownPackage = "com.example",
-            libraries =
-                mapOf(
-                    "kotlin" to Layer.Helper,
-                    "kotlin.io.ConsoleKt" to Layer.Infrastructure,
-                    "java.lang" to Layer.Helper,
-                    "java.io" to Layer.Infrastructure,
-                    "org.jetbrains.annotations" to Layer.Helper,
-                ),
-            allowedSuppressions = setOf("Allowed"),
-        )
-
     private val modules: List<Module> by lazy {
         compiled("com/example/sample/domain", "modules/sample", SourceSet.Main)
         compiled("com/example/sample/infrastructure", "modules/sample", SourceSet.Main)
@@ -79,8 +65,30 @@ class AnalysisTest {
 
     private val findings: List<Finding> by lazy { analyzed() }
 
-    private fun analyzed(excluded: Set<String> = emptySet()): List<Finding> =
-        analyze(modules = modules, catalogue = catalogue, excluded = ExcludedPackages(excluded))
+    private fun catalogue(externalApi: Set<String>) =
+        Catalogue(
+            ownPackage = "com.example",
+            libraries =
+                mapOf(
+                    "kotlin" to Layer.Helper,
+                    "kotlin.io.ConsoleKt" to Layer.Infrastructure,
+                    "java.lang" to Layer.Helper,
+                    "java.io" to Layer.Infrastructure,
+                    "org.jetbrains.annotations" to Layer.Helper,
+                ),
+            allowedSuppressions = setOf("Allowed"),
+            externalApi = externalApi,
+        )
+
+    private fun analyzed(
+        excluded: Set<String> = emptySet(),
+        externalApi: Set<String> = emptySet(),
+    ): List<Finding> =
+        analyze(
+            modules = modules,
+            catalogue = catalogue(externalApi),
+            excluded = ExcludedPackages(excluded),
+        )
 
     @AfterTest
     fun deleteRepository() {
@@ -193,6 +201,21 @@ class AnalysisTest {
                 "MagicNumber modules/sample/src/main/kotlin/com/example/sample/domain/Suppressed.kt",
             ),
             found(FindingKind.ForbiddenSuppressions),
+        )
+    }
+
+    @Test
+    fun thePublicMembersOfTheExternalApiAreUsedFromOtherModules() {
+        val findings = analyzed(externalApi = setOf("com.example.sample.domain.Report"))
+
+        assertEquals(
+            listOf(
+                "com.example.sample.cycle.b.B() public → internal",
+                "com.example.sample.domain.ReportKt.readsAFile(String) public → internal",
+                "com.example.sample.domain.ReportKt.usedByOwnTests() public → internal",
+                "com.example.sample.domain.ReportKt.usedInModule() public → internal",
+            ),
+            found(FindingKind.MembersTooVisible, findings),
         )
     }
 
