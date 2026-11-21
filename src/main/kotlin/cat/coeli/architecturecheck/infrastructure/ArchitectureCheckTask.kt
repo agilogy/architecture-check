@@ -1,7 +1,9 @@
 package cat.coeli.architecturecheck.infrastructure
 
 import cat.coeli.architecturecheck.domain.ExcludedPackages
+import cat.coeli.architecturecheck.domain.Module
 import cat.coeli.architecturecheck.domain.Report
+import cat.coeli.architecturecheck.domain.analyze
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
@@ -29,7 +31,7 @@ import org.gradle.work.DisableCachingByDefault
 @DisableCachingByDefault(
     because = "It reads every module's classes, and fails rather than produce a result to reuse",
 )
-abstract class ArchitectureCheck : DefaultTask() {
+abstract class ArchitectureCheckTask : DefaultTask() {
     @get:Internal abstract val repositoryRoot: DirectoryProperty
 
     @get:InputFile
@@ -63,20 +65,22 @@ abstract class ArchitectureCheck : DefaultTask() {
     @TaskAction
     fun check() {
         val root = repositoryRoot.get().asFile
-        val findings =
-            analyze(
-                modules =
-                    modules.get().map { (path, isApp) ->
-                        Module(
-                            path = path,
-                            directory = root.resolve(path).normalize(),
-                            name = moduleNames.get().getValue(path),
-                            isApp = isApp,
-                        )
-                    },
-                catalogue = readCatalogue(catalogue.get().asFile.readText()),
-                excluded = ExcludedPackages(excludedPackages.get()),
+        val code =
+            CompiledCode(
+                modules.get().map { (path, isApp) ->
+                    ModuleFiles(
+                        module = Module(path, moduleNames.get().getValue(path), isApp),
+                        directory = root.resolve(path).normalize(),
+                    )
+                },
             )
+        val findings =
+            with(code) {
+                analyze(
+                    catalogue = readCatalogue(catalogue.get().asFile.readText()),
+                    excluded = ExcludedPackages(excludedPackages.get()),
+                )
+            }
         val report = Report(findings, sourceLinkBase.orNull)
         val directory = reportDirectory.get().asFile
         directory.resolve("report.md").writeText(report.markdown())

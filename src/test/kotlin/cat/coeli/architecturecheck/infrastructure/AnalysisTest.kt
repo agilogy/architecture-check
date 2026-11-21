@@ -5,6 +5,9 @@ import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
 import cat.coeli.architecturecheck.domain.Layer
+import cat.coeli.architecturecheck.domain.Module
+import cat.coeli.architecturecheck.domain.SourceSet
+import cat.coeli.architecturecheck.domain.analyze
 import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.AfterTest
@@ -18,7 +21,7 @@ import kotlin.test.assertEquals
 class AnalysisTest {
     private val root = createTempDirectory("architecture-check").toFile()
 
-    private val modules: List<Module> by lazy {
+    private val modules: List<ModuleFiles> by lazy {
         compiled("com/example/sample/domain", "modules/sample", SourceSet.Main)
         compiled("com/example/sample/infrastructure", "modules/sample", SourceSet.Main)
         compiled("com/example/sample/cycle", "modules/sample", SourceSet.Main)
@@ -53,18 +56,14 @@ class AnalysisTest {
             "@Suppress(\"MagicNumber\") val y = 42",
         )
         listOf(
-            Module(path = ".", directory = root, name = "repository", isApp = false),
-            Module(
-                path = "modules/sample",
-                directory = File(root, "modules/sample"),
-                name = "sample",
-                isApp = false,
+            ModuleFiles(Module(path = ".", name = "repository", isApp = false), root),
+            ModuleFiles(
+                Module(path = "modules/sample", name = "sample", isApp = false),
+                File(root, "modules/sample"),
             ),
-            Module(
-                path = "apps/app",
-                directory = File(root, "apps/app"),
-                name = "app",
-                isApp = true,
+            ModuleFiles(
+                Module(path = "apps/app", name = "app", isApp = true),
+                File(root, "apps/app"),
             ),
         )
     }
@@ -90,11 +89,9 @@ class AnalysisTest {
         excluded: Set<String> = emptySet(),
         externalApi: Set<String> = emptySet(),
     ): List<Finding> =
-        analyze(
-            modules = modules,
-            catalogue = catalogue(externalApi),
-            excluded = ExcludedPackages(excluded),
-        )
+        with(CompiledCode(modules)) {
+            analyze(catalogue = catalogue(externalApi), excluded = ExcludedPackages(excluded))
+        }
 
     @AfterTest
     fun deleteRepository() {
