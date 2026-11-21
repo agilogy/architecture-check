@@ -3,13 +3,13 @@ package cat.coeli.architecturecheck.domain
 internal const val CATALOGUE_FILE = "config/architecture/catalogue.jsonc"
 
 /** A line of a file, by its path from the repository root. */
-data class SourceLine(val path: String, val line: Int)
+internal data class SourceLine(val path: String, val line: Int)
 
 /**
  * [module] is the module's directory from the repository root, `.` for the root build script.
  * [subject] is what is wrong; [detail] what the reader needs to fix it.
  */
-data class Finding(
+internal data class Finding(
     val kind: FindingKind,
     val module: String,
     val subject: String,
@@ -17,7 +17,7 @@ data class Finding(
     val source: SourceLine? = null,
 )
 
-enum class FindingKind(val title: String, val explanation: String) {
+internal enum class FindingKind(val title: String, val explanation: String) {
     PackageCycles(
         "Package cycles",
         "Packages that depend on each other in a cycle, so none of them can be understood or changed without the " +

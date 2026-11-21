@@ -5,6 +5,8 @@ archunit = "1.5.1"
 junit = "6.1.3"
 ktfmt-gradle-plugin = "0.28.0"
 detekt = "2.0.0-alpha.6"
+# The published version of this plugin that checks this build.
+architecture-check = "0.3.0"
 
 [libraries]
 archunit = { module = "com.tngtech.archunit:archunit", version.ref = "archunit" }
@@ -19,3 +21,4 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt-gradle-plugin" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
+architecture-check = { id = "cat.coeli.architecture-check", version.ref = "architecture-check" }

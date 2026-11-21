@@ -9,7 +9,7 @@ package cat.coeli.architecturecheck.domain
  * as used from another module, such as a Gradle plugin's, which Gradle and the builds applying it
  * use.
  */
-class Catalogue(
+internal class Catalogue(
     internal val ownPackage: String,
     private val libraries: Map<String, Layer>,
     internal val allowedSuppressions: Set<String> = emptySet(),

@@ -50,7 +50,7 @@ internal data class Declaration(
 internal class DeclarationSite(
     val owner: JavaClass,
     val placement: Placement,
-    val classVisibility: Visibility,
+    private val classVisibility: Visibility,
     val reachesPrivately: (JavaClass) -> Boolean,
 ) {
     /** `protected` and local members are not judged. */

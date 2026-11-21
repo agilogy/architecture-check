@@ -29,7 +29,7 @@ enum class UseScope {
     OtherModuleTest,
 }
 
-sealed interface Verdict {
+internal sealed interface Verdict {
     data class TooVisible(val current: Visibility, val needed: Visibility) : Verdict
 
     data class Unused(val isUsedOnlyByTestsOfOtherModules: Boolean) : Verdict

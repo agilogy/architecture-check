@@ -1,8 +1,4 @@
-package cat.coeli.architecturecheck.infrastructure
-
-import cat.coeli.architecturecheck.domain.Finding
-import cat.coeli.architecturecheck.domain.FindingKind
-import cat.coeli.architecturecheck.domain.SourceLine
+package cat.coeli.architecturecheck.domain
 
 private const val TITLE = "Architecture check"
 

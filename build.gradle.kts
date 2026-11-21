@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktfmt)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.architecture.check)
 }
 
 // Gradle 9 runs on Java 17 or later: the plugin loads in any of them.
@@ -55,6 +56,9 @@ dependencies {
 }
 
 tasks.test { useJUnitPlatform() }
+
+// The fixtures AnalysisTest analyses.
+architectureCheck { excludedPackages = setOf("com.example") }
 
 gradlePlugin {
     plugins {
