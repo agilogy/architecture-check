@@ -33,14 +33,15 @@ internal data class Reach(
  * they use. [moduleNames] has each module's Gradle name by its path.
  */
 internal class ClassAnalysis(
-    private val classes: List<CompiledClass>,
+    classes: List<CompiledClass>,
     private val moduleNames: Map<String, String>,
     private val catalogue: Catalogue,
     private val excluded: ExcludedPackages,
 ) {
-    private val classesByName = classes.associateBy { it.name }
-    private val ownPackages = classes.map { it.packageName }.toSet()
-    private val production = classes.filter { it.placement.sourceSet != SourceSet.Test }
+    private val seen = classes.filterNot { it.packageName in excluded }
+    private val classesByName = seen.associateBy { it.name }
+    private val ownPackages = seen.map { it.packageName }.toSet()
+    private val production = seen.filter { it.placement.sourceSet != SourceSet.Test }
 
     private val neededLayers: Map<String, Layer> by lazy {
         val reachesByUnit =
@@ -197,7 +198,7 @@ internal class ClassAnalysis(
     }
 
     private fun packagesOutsideModuleRoot(): List<Finding> =
-        classes
+        seen
             .groupBy(
                 keySelector = { it.placement.module },
                 valueTransform = { it.packageName },

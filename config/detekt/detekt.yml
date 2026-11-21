@@ -1,3 +1,8 @@
+complexity:
+  # CompiledCode keeps everything that reads the compiled classes private to it, in one class.
+  TooManyFunctions:
+    allowedFunctionsPerObject: 25
+
 comments:
   UndocumentedPublicClass:
     active: false

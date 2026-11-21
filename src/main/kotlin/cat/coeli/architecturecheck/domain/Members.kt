@@ -47,20 +47,12 @@ internal fun memberFindingsOf(
     excluded: ExcludedPackages,
     apps: Set<String>,
 ): List<Finding> {
+    val seen = memberUses.without(excluded)
     val overridden =
-        memberUses.overridings.groupBy(
-            keySelector = { it.overrider },
-            valueTransform = { it.overridden },
-        )
-    val usesByRoot =
-        usesByRootOf(
-            memberUses = memberUses,
-            overridden = overridden,
-            catalogue = catalogue,
-            excluded = excluded,
-        )
+        seen.overridings.groupBy(keySelector = { it.overrider }, valueTransform = { it.overridden })
+    val usesByRoot = usesByRootOf(memberUses = seen, overridden = overridden, catalogue = catalogue)
     val overridersByRoot = overridersByRootOf(overridden)
-    return memberUses.members
+    return seen.members
         .filter { !it.isExempt && it !in overridden }
         .mapNotNull { member ->
             verdictOf(
@@ -74,17 +66,33 @@ internal fun memberFindingsOf(
         }
 }
 
+// The members of excluded packages get no findings, and their uses and overrides count for nothing.
+private fun MemberUses.without(excluded: ExcludedPackages): MemberUses {
+    val seen = members.filterNot { it.ownerPackage in excluded }.toSet()
+    return MemberUses(
+        members = members.filter { it in seen },
+        uses = uses.filter { it.member in seen && it.originPackage !in excluded },
+        overridings =
+            overridings
+                .filter { it.overrider in seen }
+                .map { if (it.overridden in seen) it else it.copy(overridden = null) },
+    )
+}
+
+private val Member.ownerPackage: String
+    get() = owner.substringBeforeLast(delimiter = '.', missingDelimiterValue = "")
+
 // The public members of the external API are used from other modules, whether we see it or not.
 private fun usesByRootOf(
     memberUses: MemberUses,
     overridden: Map<Member, List<Member?>>,
     catalogue: Catalogue,
-    excluded: ExcludedPackages,
 ): Map<Member, Set<UseScope>> {
     val scopes =
-        memberUses.uses
-            .filterNot { it.originPackage in excluded }
-            .groupBy(keySelector = { it.member }, valueTransform = { scopeOf(it, catalogue) })
+        memberUses.uses.groupBy(
+            keySelector = { it.member },
+            valueTransform = { scopeOf(it, catalogue) },
+        )
     return memberUses.members
         .flatMap { member ->
             val memberScopes =

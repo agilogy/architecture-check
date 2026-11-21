@@ -201,4 +201,22 @@ class MembersTest {
             ),
         )
     }
+
+    @Test
+    fun membersOfExcludedPackagesAreNotSeen() {
+        val open = member("open", isFinal = false)
+        val fixture = member("fixture").copy(owner = "com.example.fixtures.Fixture")
+        val overridesFixture = member("overridesFixture")
+
+        assertEquals(
+            listOf("open"),
+            found(
+                members = listOf(open, fixture, overridesFixture),
+                uses = listOf(use(overridesFixture, origin = null)),
+                overridings =
+                    listOf(Overriding(fixture, open), Overriding(overridesFixture, fixture)),
+                excluded = setOf("com.example.fixtures"),
+            ),
+        )
+    }
 }

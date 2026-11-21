@@ -219,4 +219,18 @@ class ClassesTest {
             ),
         )
     }
+
+    @Test
+    fun classesOfExcludedPackagesAreNotSeen() {
+        assertEquals(
+            emptyList(),
+            findings(
+                compiled(
+                    "com.example.sample.domain.Report",
+                    reaches = listOf(reach("com.example.fixtures.Fixture")),
+                ),
+                compiled("com.example.fixtures.Fixture", reaches = listOf(reach("java.io.File"))),
+            ),
+        )
+    }
 }

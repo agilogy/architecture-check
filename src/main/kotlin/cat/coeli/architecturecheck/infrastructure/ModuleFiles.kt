@@ -1,19 +1,11 @@
 package cat.coeli.architecturecheck.infrastructure
 
+import cat.coeli.architecturecheck.domain.Module
 import cat.coeli.architecturecheck.domain.SourceSet
 import java.io.File
 
-/**
- * A project of the build: [path] is its directory from the repository root, `.` for the root
- * project, and [name] its Gradle name. [isApp] for an application, which no other module depends
- * on.
- */
-internal class Module(
-    val path: String,
-    private val directory: File,
-    internal val name: String,
-    internal val isApp: Boolean,
-) {
+/** Where the files of [module] are: its project [directory]. */
+internal class ModuleFiles(internal val module: Module, private val directory: File) {
     internal val buildScript: File
         get() = File(directory, BUILD_SCRIPT)
 
@@ -26,7 +18,7 @@ internal class Module(
     /** A file of the module as a path from the repository root. */
     internal fun pathOf(file: File): String =
         file.relativeTo(directory).invariantSeparatorsPath.let {
-            if (path == ".") it else "$path/$it"
+            if (module.path == ".") it else "${module.path}/$it"
         }
 }
 
