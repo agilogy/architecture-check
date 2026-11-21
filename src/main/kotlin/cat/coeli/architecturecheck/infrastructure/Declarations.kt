@@ -1,6 +1,8 @@
 package cat.coeli.architecturecheck.infrastructure
 
+import cat.coeli.architecturecheck.domain.Member
 import cat.coeli.architecturecheck.domain.Placement
+import cat.coeli.architecturecheck.domain.SourceLine
 import cat.coeli.architecturecheck.domain.Visibility
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaCodeUnit
@@ -30,28 +32,25 @@ import kotlin.metadata.modality
 import kotlin.metadata.visibility
 
 /**
- * A function, property or constructor as Kotlin declares it, with the bytecode members it compiled
- * to ([handles]): a use of any of them is a use of the declaration. [visibility] is the effective
- * one, narrowed by the classes around.
+ * A [member] with the bytecode members it compiled to ([handles]): a use of any of them is a use of
+ * the member.
  */
 internal data class Declaration(
-    val identity: String,
+    val member: Member,
     val site: DeclarationSite,
-    val visibility: Visibility,
-    val isFinal: Boolean,
-    /** Not judged, although its uses still count for what it overrides. */
-    val isExempt: Boolean,
     val handles: Set<JavaMember>,
 )
 
 /**
  * The class file a declaration is in, the visibility of its class narrowed by the classes around
- * ([classVisibility]), and which classes `private` lets use it ([reachesPrivately]).
+ * ([classVisibility]), which classes `private` lets use it ([reachesPrivately]) and its source file
+ * from the repository root ([sourcePath]), when it is where the package convention puts it.
  */
 internal class DeclarationSite(
-    val owner: JavaClass,
-    val placement: Placement,
+    private val owner: JavaClass,
+    private val placement: Placement,
     private val classVisibility: Visibility,
+    private val sourcePath: String?,
     val reachesPrivately: (JavaClass) -> Boolean,
 ) {
     /** `protected` and local members are not judged. */
@@ -64,14 +63,29 @@ internal class DeclarationSite(
     ): Declaration? =
         visibility.toVisibility()?.let { memberVisibility ->
             Declaration(
-                identity = identity,
+                member =
+                    Member(
+                        identity = identity,
+                        owner = owner.name,
+                        placement = placement,
+                        visibility = minOf(a = memberVisibility, b = classVisibility),
+                        isFinal = isFinal,
+                        isExempt = isExempt,
+                        source = sourceLineOf(handles),
+                    ),
                 site = this,
-                visibility = minOf(a = memberVisibility, b = classVisibility),
-                isFinal = isFinal,
-                isExempt = isExempt,
                 handles = handles.toSet(),
             )
         }
+
+    private fun sourceLineOf(handles: List<JavaMember>): SourceLine? {
+        val line =
+            handles
+                .filterIsInstance<JavaCodeUnit>()
+                .map { it.sourceCodeLocation.lineNumber }
+                .firstOrNull { it > 0 }
+        return if (sourcePath == null || line == null) null else SourceLine(sourcePath, line)
+    }
 }
 
 /** The declarations of one class file, as its Kotlin metadata lists them. */
@@ -79,6 +93,7 @@ internal class Declarations(
     private val owner: JavaClass,
     private val placement: Placement,
     private val metadata: Map<JavaClass, KotlinClassMetadata?>,
+    private val sourcePath: String?,
 ) {
     private val methods = owner.methods.associateBy { it.name + it.descriptor }
 
@@ -98,6 +113,7 @@ internal class Declarations(
                     owner = owner,
                     placement = placement,
                     classVisibility = Visibility.Public,
+                    sourcePath = sourcePath,
                     reachesPrivately = { origin ->
                         origin.packageName == owner.packageName &&
                             origin.sourceFileName() == owner.sourceFileName()
@@ -130,6 +146,7 @@ internal class Declarations(
                     owner = owner,
                     placement = placement,
                     classVisibility = visibility,
+                    sourcePath = sourcePath,
                     reachesPrivately = { origin ->
                         generateSequence(origin) { it.enclosingClass.orElse(null) }
                             .any { it == scope }

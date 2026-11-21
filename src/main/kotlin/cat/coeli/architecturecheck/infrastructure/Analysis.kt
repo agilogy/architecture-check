@@ -8,6 +8,7 @@ import cat.coeli.architecturecheck.domain.Layer
 import cat.coeli.architecturecheck.domain.SourceLine
 import cat.coeli.architecturecheck.domain.SourceSet
 import cat.coeli.architecturecheck.domain.forbiddenSuppressionsOf
+import cat.coeli.architecturecheck.domain.memberFindingsOf
 import cat.coeli.architecturecheck.domain.stringDependenciesOf
 import java.io.File
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -24,20 +25,20 @@ internal fun analyze(
     excluded: ExcludedPackages,
 ): List<Finding> {
     val placements = importClasses(modules, excluded)
-    val classes =
-        ClassAnalysis(
-            modules = modules,
-            placements = placements,
-            catalogue = catalogue,
-            excluded = excluded,
-        )
-    return (classes.findings() +
-            memberFindingsOf(
-                placements = placements,
+    val sourcePaths = sourcePathsOf(placements, modules)
+    return (ClassAnalysis(
                 modules = modules,
+                placements = placements,
                 catalogue = catalogue,
                 excluded = excluded,
-                sourceLineOf = classes::sourceLineOf,
+                sourcePaths = sourcePaths,
+            )
+            .findings() +
+            memberFindingsOf(
+                memberUses = memberUsesOf(placements, sourcePaths),
+                catalogue = catalogue,
+                excluded = excluded,
+                apps = modules.filter { it.isApp }.map { it.path }.toSet(),
             ) +
             modules.flatMap { textFindingsOf(it, catalogue, excluded) })
         .sortedWith(compareBy({ it.kind }, { it.module }, { it.subject }, { it.detail }))

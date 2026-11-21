@@ -99,6 +99,8 @@ internal class ClassAnalysis(
     private val placements: Map<JavaClass, Placement>,
     private val catalogue: Catalogue,
     private val excluded: ExcludedPackages,
+    /** Each class's source file from the repository root, as [sourcePathsOf] finds it. */
+    private val sourcePaths: Map<JavaClass, String>,
 ) {
     private val modulesByPath = modules.associateBy { it.path }
     private val ownClassNames = placements.keys.map { it.name }.toSet()
@@ -188,7 +190,7 @@ internal class ClassAnalysis(
                                 module = placement.module,
                                 subject = "${origin.topLevelName()} → ${reach.target.packageName}",
                                 detail = "$originLayer → $forbiddenLayer: ${reach.target.name}",
-                                source = sourceLineOf(origin, placement, reach.location),
+                                source = sourceLineOf(origin, reach.location),
                             )
                         }
                 }
@@ -209,8 +211,7 @@ internal class ClassAnalysis(
                         subject = file,
                         detail = "needs nothing of ${Layer.Infrastructure}",
                         source =
-                            sourceLineOf(javaClass, placement, javaClass.sourceCodeLocation)
-                                ?.copy(line = 1),
+                            sourceLineOf(javaClass, javaClass.sourceCodeLocation)?.copy(line = 1),
                     )
                     .takeIf {
                         isPlacedTooLow(
@@ -234,7 +235,7 @@ internal class ClassAnalysis(
                             module = placement.module,
                             subject = reach.target.packageName,
                             detail = "used by ${origin.topLevelName()}",
-                            source = sourceLineOf(origin, placement, reach.location),
+                            source = sourceLineOf(origin, reach.location),
                         )
                     }
             }
@@ -289,21 +290,30 @@ internal class ClassAnalysis(
                     }
             }
 
-    /** The source file where the package convention puts it, when it is there. */
-    fun sourceLineOf(
-        javaClass: JavaClass,
-        placement: Placement,
-        location: SourceCodeLocation,
-    ): SourceLine? =
-        modulesByPath[placement.module]?.sourceLineOf(javaClass, placement.sourceSet, location)
+    private fun sourceLineOf(javaClass: JavaClass, location: SourceCodeLocation): SourceLine? =
+        sourcePaths[javaClass]?.let { SourceLine(it, location.lineNumber) }
 }
 
-private fun Module.sourceLineOf(
-    javaClass: JavaClass,
-    sourceSet: SourceSet,
-    location: SourceCodeLocation,
-): SourceLine? =
-    location.sourceFileName
+/**
+ * Each class's source file from the repository root, when it is where the package convention puts
+ * it.
+ */
+internal fun sourcePathsOf(
+    placements: Map<JavaClass, Placement>,
+    modules: List<Module>,
+): Map<JavaClass, String> {
+    val modulesByPath = modules.associateBy { it.path }
+    return placements
+        .mapNotNull { (javaClass, placement) ->
+            modulesByPath[placement.module]?.sourcePathOf(javaClass, placement.sourceSet)?.let {
+                javaClass to it
+            }
+        }
+        .toMap()
+}
+
+private fun Module.sourcePathOf(javaClass: JavaClass, sourceSet: SourceSet): String? =
+    javaClass.sourceCodeLocation.sourceFileName
         .takeIf { it.isNotEmpty() }
         ?.let { fileName ->
             File(
@@ -312,4 +322,4 @@ private fun Module.sourceLineOf(
             )
         }
         ?.takeIf { it.isFile }
-        ?.let { SourceLine(pathOf(it), location.lineNumber) }
+        ?.let { pathOf(it) }
