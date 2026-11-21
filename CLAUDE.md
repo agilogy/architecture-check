@@ -9,6 +9,11 @@ an app. Its configuration is the consuming repository's `config/architecture/cat
 `libraries`, `allowedSuppressions`, `testSupportModules`, `externalApi`) and the extension's `excludedPackages`
 (`architectureCheck { excludedPackages = setOf("com.example") }`). The rules are in `FindingKind`.
 
+This build checks itself with the version of the plugin in `gradle/libs.versions.toml` (`architecture-check`),
+published to GitHub Packages, which asks for a token even to read: every build needs `GitHubPackagesUsername`
+and `GitHubPackagesPassword` (a classic token with `read:packages`) in `~/.gradle/gradle.properties`. A rule
+changed here checks this build only once its version is published and that entry bumped.
+
 ## Commands
 
 ```bash
