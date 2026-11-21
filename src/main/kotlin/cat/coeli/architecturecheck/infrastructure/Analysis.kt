@@ -1,6 +1,7 @@
 package cat.coeli.architecturecheck.infrastructure
 
 import cat.coeli.architecturecheck.domain.Catalogue
+import cat.coeli.architecturecheck.domain.ClassAnalysis
 import cat.coeli.architecturecheck.domain.ExcludedPackages
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
@@ -27,11 +28,10 @@ internal fun analyze(
     val placements = importClasses(modules, excluded)
     val sourcePaths = sourcePathsOf(placements, modules)
     return (ClassAnalysis(
-                modules = modules,
-                placements = placements,
+                classes = compiledClassesOf(placements, sourcePaths),
+                moduleNames = modules.associate { it.path to it.name },
                 catalogue = catalogue,
                 excluded = excluded,
-                sourcePaths = sourcePaths,
             )
             .findings() +
             memberFindingsOf(
