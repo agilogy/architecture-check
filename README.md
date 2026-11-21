@@ -46,9 +46,8 @@ env:
   ORG_GRADLE_PROJECT_GitHubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This repository's own workflows read it that way. Whether another repository's workflow token can read the
-package is still to be checked; if it can't, store a token with `read:packages` as a secret and use it
-instead.
+If the workflow sets `permissions`, add `packages: read`. Workflows of other repositories read the package
+that way too (tried with a public repository of the same organisation).
 
 ### `settings.gradle.kts`
 
