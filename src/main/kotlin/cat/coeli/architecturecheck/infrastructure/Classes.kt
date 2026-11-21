@@ -26,12 +26,14 @@ internal fun importClasses(modules: List<Module>): Map<JavaClass, Placement> {
     val prefixes = directories.map { (directory, placement) ->
         directory.absolutePath + File.separator to placement
     }
-    return if (directories.isEmpty()) emptyMap()
-    else
+    return if (directories.isEmpty()) {
+        emptyMap()
+    } else {
         ClassFileImporter()
             .importPaths(directories.map { it.first.toPath() })
             .mapNotNull { javaClass -> placementOf(javaClass, prefixes)?.let { javaClass to it } }
             .toMap()
+    }
 }
 
 private fun placementOf(javaClass: JavaClass, prefixes: List<Pair<String, Placement>>): Placement? =
@@ -52,16 +54,16 @@ private data class Reach(
     val location: SourceCodeLocation,
 )
 
-/** Arrays count as their elements; primitives are nobody's. */
+// Arrays count as their elements; primitives are nobody's.
 private fun JavaClass.reaches(): List<Reach> {
     val accesses = accessesFromSelf.map {
-        Reach(it.targetOwner, it.target.name, it.sourceCodeLocation)
+        Reach(target = it.targetOwner, member = it.target.name, location = it.sourceCodeLocation)
     }
     val accessed = accesses.map { it.target.name to it.location.lineNumber }.toSet()
     val others =
         directDependenciesFromSelf
-            .filterNot { (it.targetClass.name to it.sourceCodeLocation.lineNumber) in accessed }
-            .map { Reach(it.targetClass, null, it.sourceCodeLocation) }
+            .filterNot { it.targetClass.name to it.sourceCodeLocation.lineNumber in accessed }
+            .map { Reach(target = it.targetClass, member = null, location = it.sourceCodeLocation) }
     return (accesses + others)
         .map { reach ->
             reach.copy(
@@ -71,9 +73,8 @@ private fun JavaClass.reaches(): List<Reach> {
         .filterNot { it.target.isPrimitive }
 }
 
-/** The source file a class was compiled from, as `package/File.kt`. */
-private fun JavaClass.sourceFile(): String =
-    packageName.replace('.', '/') +
+private fun JavaClass.sourceFilePath(): String =
+    packageName.replace(oldChar = '.', newChar = '/') +
         "/" +
         (source.orElse(null)?.fileName?.orElse(null) ?: "${simpleName}.kt")
 
@@ -89,7 +90,7 @@ internal fun JavaClass.topLevelName(): String =
  * they use.
  */
 internal class ClassAnalysis(
-    private val modules: List<Module>,
+    modules: List<Module>,
     private val placements: Map<JavaClass, Placement>,
     private val catalogue: Catalogue,
 ) {
@@ -97,12 +98,6 @@ internal class ClassAnalysis(
     private val ownClassNames = placements.keys.map { it.name }.toSet()
     private val ownPackages = placements.keys.map { it.packageName }.toSet()
     private val production = placements.filterValues { it.sourceSet != SourceSet.Test }
-
-    private fun isOwn(target: JavaClass) = target.name in ownClassNames
-
-    /** A class of ours the import left out, such as one Kotlin inlined away, is nobody's. */
-    private fun isLibrary(target: JavaClass) =
-        target.packageName.isNotEmpty() && target.packageName !in ownPackages
 
     private val neededLayers: Map<String, Layer> by lazy {
         val reachesByUnit =
@@ -122,34 +117,39 @@ internal class ClassAnalysis(
                     .toMap(),
             dependencies =
                 reachesByUnit.mapValues { (unit, reaches) ->
-                    reaches
-                        .filter { isOwn(it.target) }
-                        .map { it.target.topLevelName() }
-                        .filter { it != unit }
-                        .toSet()
+                    reaches.filter { isOwn(it.target) }.map { it.target.topLevelName() }.toSet() -
+                        unit
                 },
         )
     }
 
-    private fun libraryLayerOf(reach: Reach): Layer? =
-        catalogue.libraryLayerOf(reach.target.name, reach.target.packageName, reach.member)
-
-    /** A source file moves as a whole, so it needs what the most demanding of its classes needs. */
+    // A source file moves as a whole, so it needs what the most demanding of its classes needs.
     private val neededLayersByFile: Map<String, Layer> by lazy {
         production.keys
-            .groupBy { it.sourceFile() }
+            .groupBy { it.sourceFilePath() }
             .mapValues { (_, classes) ->
                 classes.maxOf { neededLayers[it.topLevelName()] ?: Layer.Helper }
             }
     }
 
-    /**
-     * The layer a class of ours counts at: the one it needs when it is placed too low, as that is
-     * reported apart.
-     */
+    private fun isOwn(target: JavaClass) = target.name in ownClassNames
+
+    // A class of ours the import left out, such as one Kotlin inlined away, is nobody's.
+    private fun isLibrary(target: JavaClass) =
+        target.packageName.isNotEmpty() && target.packageName !in ownPackages
+
+    private fun libraryLayerOf(reach: Reach): Layer? =
+        catalogue.libraryLayerOf(
+            className = reach.target.name,
+            packageName = reach.target.packageName,
+            member = reach.member,
+        )
+
+    // The layer a class of ours counts at: the one it needs when it is placed too low, as that is
+    // reported apart.
     private fun ownLayerOf(target: JavaClass): Layer {
         val declared = layerOf(target.packageName)
-        val needed = neededLayersByFile[target.sourceFile()] ?: declared
+        val needed = neededLayersByFile[target.sourceFilePath()] ?: declared
         return if (isPlacedTooLow(declared, needed)) needed else declared
     }
 
@@ -162,6 +162,7 @@ internal class ClassAnalysis(
 
     private fun forbiddenDependencies(): List<Finding> =
         production.entries
+            .asSequence()
             .flatMap { (origin, placement) ->
                 val originLayer = layerOf(origin.packageName)
                 origin.reaches().mapNotNull { reach ->
@@ -173,72 +174,78 @@ internal class ClassAnalysis(
                         }
                     targetLayer
                         ?.takeUnless { originLayer.mayDependOn(it) }
-                        ?.let {
+                        ?.let { forbiddenLayer ->
                             Finding(
-                                FindingKind.ForbiddenDependencies,
-                                placement.module,
-                                "${origin.topLevelName()} → ${reach.target.packageName}",
-                                "$originLayer → $it: ${reach.target.name}",
-                                sourceLineOf(origin, placement, reach.location),
+                                kind = FindingKind.ForbiddenDependencies,
+                                module = placement.module,
+                                subject = "${origin.topLevelName()} → ${reach.target.packageName}",
+                                detail = "$originLayer → $forbiddenLayer: ${reach.target.name}",
+                                source = sourceLineOf(origin, placement, reach.location),
                             )
                         }
                 }
             }
             .sortedWith(compareBy({ it.source?.line ?: 0 }, { it.detail }))
             .distinctBy { it.module to it.subject }
+            .toList()
 
-    /** One finding per source file, which is what moves. */
+    // One finding per source file, which is what moves.
     private fun classesPlacedTooLow(): List<Finding> =
         production.entries
-            .distinctBy { (javaClass, _) -> javaClass.sourceFile() }
+            .distinctBy { (javaClass, _) -> javaClass.sourceFilePath() }
             .mapNotNull { (javaClass, placement) ->
-                val file = javaClass.sourceFile()
+                val file = javaClass.sourceFilePath()
                 Finding(
-                        FindingKind.ClassesPlacedTooLow,
-                        placement.module,
-                        file,
-                        "needs nothing of ${Layer.Infrastructure}",
-                        sourceLineOf(javaClass, placement, javaClass.sourceCodeLocation)
-                            ?.copy(line = 1),
+                        kind = FindingKind.ClassesPlacedTooLow,
+                        module = placement.module,
+                        subject = file,
+                        detail = "needs nothing of ${Layer.Infrastructure}",
+                        source =
+                            sourceLineOf(javaClass, placement, javaClass.sourceCodeLocation)
+                                ?.copy(line = 1),
                     )
                     .takeIf {
                         isPlacedTooLow(
-                            layerOf(javaClass.packageName),
-                            neededLayersByFile.getValue(file),
+                            declared = layerOf(javaClass.packageName),
+                            needed = neededLayersByFile.getValue(file),
                         )
                     }
             }
 
-    /** Once for the whole repository, wherever the library is used from. */
+    // Once for the whole repository, wherever the library is used from.
     private fun librariesWithoutRole(): List<Finding> =
         production.entries
+            .asSequence()
             .flatMap { (origin, placement) ->
                 origin
                     .reaches()
                     .filter { isLibrary(it.target) && libraryLayerOf(it) == null }
                     .map { reach ->
                         Finding(
-                            FindingKind.LibrariesWithoutRole,
-                            placement.module,
-                            reach.target.packageName,
-                            "used by ${origin.topLevelName()}",
-                            sourceLineOf(origin, placement, reach.location),
+                            kind = FindingKind.LibrariesWithoutRole,
+                            module = placement.module,
+                            subject = reach.target.packageName,
+                            detail = "used by ${origin.topLevelName()}",
+                            source = sourceLineOf(origin, placement, reach.location),
                         )
                     }
             }
             .sortedWith(compareBy({ it.module }, { it.source?.line ?: 0 }, { it.detail }))
             .distinctBy { it.subject }
+            .toList()
 
     private fun packageCycles(): List<Finding> {
         val edges =
             production.keys
                 .flatMap { origin ->
                     origin.directDependenciesFromSelf
-                        .map { it.targetClass }
-                        .filter { isOwn(it) && it.packageName != origin.packageName }
-                        .map { origin.packageName to it.packageName }
+                        .filter { dependency ->
+                            isOwn(dependency.targetClass) &&
+                                dependency.targetClass.packageName != origin.packageName
+                        }
+                        .map { origin.packageName to it.targetClass.packageName }
                 }
-                .groupBy({ it.first }, { it.second })
+                .groupBy(keySelector = { it.first }, valueTransform = { it.second })
                 .mapValues { it.value.toSet() }
         val moduleOfPackage =
             production.entries.associate { (javaClass, placement) ->
@@ -246,25 +253,27 @@ internal class ClassAnalysis(
             }
         return cyclesOf(edges).map { cycle ->
             Finding(
-                FindingKind.PackageCycles,
-                moduleOfPackage.getValue(cycle.first()),
-                cycle.joinToString(" ↔ "),
+                kind = FindingKind.PackageCycles,
+                module = moduleOfPackage.getValue(cycle.first()),
+                subject = cycle.joinToString(" ↔ "),
             )
         }
     }
 
     private fun packagesOutsideModuleRoot(): List<Finding> =
-        placements.entries.groupBy({ it.value.module }, { it.key.packageName }).flatMap {
-            (module, packages) ->
-            packagesOutsideRootOf(catalogue.ownPackage, module, packages.toSet()).map {
-                Finding(
-                    FindingKind.PackagesOutsideModuleRoot,
-                    module,
-                    it,
-                    "expected under ${rootPackageOf(catalogue.ownPackage, module)}",
-                )
+        placements.entries
+            .groupBy(keySelector = { it.value.module }, valueTransform = { it.key.packageName })
+            .flatMap { (module, packages) ->
+                packagesOutsideRootOf(catalogue.ownPackage, module, packages.toSet()).map { outside
+                    ->
+                    Finding(
+                        kind = FindingKind.PackagesOutsideModuleRoot,
+                        module = module,
+                        subject = outside,
+                        detail = "expected under ${rootPackageOf(catalogue.ownPackage, module)}",
+                    )
+                }
             }
-        }
 
     /** The source file where the package convention puts it, when it is there. */
     fun sourceLineOf(
@@ -272,16 +281,21 @@ internal class ClassAnalysis(
         placement: Placement,
         location: SourceCodeLocation,
     ): SourceLine? =
-        modulesByPath[placement.module]?.let { module ->
-            location.sourceFileName
-                .takeIf { it.isNotEmpty() }
-                ?.let {
-                    File(
-                        module.sourceDirectoryOf(placement.sourceSet),
-                        javaClass.packageName.replace('.', '/') + "/$it",
-                    )
-                }
-                ?.takeIf { it.isFile }
-                ?.let { SourceLine(module.pathOf(it), location.lineNumber) }
-        }
+        modulesByPath[placement.module]?.sourceLineOf(javaClass, placement.sourceSet, location)
 }
+
+private fun Module.sourceLineOf(
+    javaClass: JavaClass,
+    sourceSet: SourceSet,
+    location: SourceCodeLocation,
+): SourceLine? =
+    location.sourceFileName
+        .takeIf { it.isNotEmpty() }
+        ?.let { fileName ->
+            File(
+                sourceDirectoryOf(sourceSet),
+                javaClass.packageName.replace(oldChar = '.', newChar = '/') + "/$fileName",
+            )
+        }
+        ?.takeIf { it.isFile }
+        ?.let { SourceLine(pathOf(it), location.lineNumber) }

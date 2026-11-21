@@ -19,19 +19,17 @@ class Catalogue(
         member: String? = null,
     ): Layer? =
         (listOfNotNull(member?.let { "$className#$it" }) +
-                enclosingClassesOf(className) +
-                prefixesOf(packageName))
+                classNestingFromInnermost(className) +
+                packagePrefixesFromLongest(packageName))
             .firstNotNullOfOrNull { libraries[it] }
 }
 
-/** `a.B$C$D`, then `a.B$C`, then `a.B`. */
-private fun enclosingClassesOf(className: String): List<String> =
+private fun classNestingFromInnermost(className: String): List<String> =
     className.split('$').let { parts ->
         (parts.size downTo 1).map { parts.take(it).joinToString("$") }
     }
 
-/** `a.b.c`, then `a.b`, then `a`. */
-private fun prefixesOf(packageName: String): List<String> =
+private fun packagePrefixesFromLongest(packageName: String): List<String> =
     packageName.split('.').let { segments ->
         (segments.size downTo 1).map { segments.take(it).joinToString(".") }
     }

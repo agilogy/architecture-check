@@ -20,7 +20,7 @@ class ArchitectureCheckPlugin : Plugin<Project> {
             }
         project.subprojects.forEach { module ->
             module.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-                architectureCheck.configure { it.analyse(module) }
+                architectureCheck.configure { task -> task.analyse(module) }
             }
         }
         project.tasks.named("check") { it.dependsOn(architectureCheck) }

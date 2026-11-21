@@ -1,6 +1,5 @@
 package cat.coeli.architecturecheck.infrastructure
 
-import cat.coeli.alerts.sample.domain.Report
 import cat.coeli.architecturecheck.domain.Catalogue
 import cat.coeli.architecturecheck.domain.Finding
 import cat.coeli.architecturecheck.domain.FindingKind
@@ -56,7 +55,11 @@ class AnalysisTest {
         file("apps/app/build.gradle.kts", "dependencies { implementation(projects.sample) }")
         file(
             "modules/sample/src/main/kotlin/cat/coeli/alerts/sample/domain/Suppressed.kt",
-            "@Suppress(\"MagicNumber\", \"Allowed\")\nval x = 42",
+            """
+            @Suppress("MagicNumber", "Allowed")
+            val x = 42
+            """
+                .trimIndent(),
         )
         analyze(root, catalogue)
     }
@@ -67,7 +70,7 @@ class AnalysisTest {
     }
 
     private fun compiled(packagePath: String, module: String, sourceSet: SourceSet) {
-        val classes = File(Report::class.java.protectionDomain.codeSource.location.toURI())
+        val classes = File(javaClass.protectionDomain.codeSource.location.toURI())
         File(classes, packagePath)
             .copyRecursively(
                 File(root, "$module/build/classes/kotlin/${sourceSet.directoryName}/$packagePath"),

@@ -2,7 +2,7 @@ package cat.coeli.architecturecheck.domain
 
 /** In `cat.coeli.alerts`, `modules/test-utils` hangs from `cat.coeli.alerts.testutils`. */
 internal fun rootPackageOf(ownPackage: String, module: String): String =
-    "$ownPackage." + module.substringAfterLast('/').replace("-", "")
+    "$ownPackage." + module.substringAfterLast('/').replace(oldValue = "-", newValue = "")
 
 /** Each branch that leaves the module's root package, cut at the segment where it leaves it. */
 internal fun packagesOutsideRootOf(
@@ -12,6 +12,7 @@ internal fun packagesOutsideRootOf(
 ): List<String> {
     val root = rootPackageOf(ownPackage, module).split('.')
     return packageNames
+        .asSequence()
         .map { it.split('.') }
         .filterNot { it.size >= root.size && it.take(root.size) == root }
         .map { segments ->
@@ -24,26 +25,23 @@ internal fun packagesOutsideRootOf(
         }
         .distinct()
         .sorted()
+        .toList()
 }
 
 /** A declaration of a build script, or a suppression of a source file, at a line counted from 1. */
 data class TextFinding(val subject: String, val line: Int)
 
-/**
- * A call taking a string literal, maybe through `platform(…)`, `enforcedPlatform(…)` or
- * `testFixtures(…)`.
- */
-private val CALL_WITH_LITERAL =
+private val CALL_WITH_STRING_LITERAL =
     Regex("""\b(\w+)\s*\(\s*(?:(?:platform|enforcedPlatform|testFixtures)\s*\(\s*)?"([^"\n]*)"""")
 
-/** `group:artifact[:version]`, with neither blanks nor slashes: not prose, not a URL. */
+// `group:artifact[:version]`, with neither blanks nor slashes: not prose, not a URL.
 private val COORDINATES = Regex("""[\w.-]+:[\w.-]+(:[^\s/"]*)*""")
 
 private val PROJECT_PATH = Regex(""":[\w:-]*""")
 
 /** Dependencies declared with coordinates or `project(":path")`, named without their version. */
 internal fun stringDependenciesOf(buildScript: String): List<TextFinding> =
-    CALL_WITH_LITERAL.findAll(buildScript)
+    CALL_WITH_STRING_LITERAL.findAll(buildScript)
         .filterNot { buildScript.isCommentedOut(it.range.first) }
         .mapNotNull { match ->
             val (call, literal) = match.destructured
@@ -75,7 +73,8 @@ internal fun forbiddenSuppressionsOf(source: String, allowed: Set<String>): List
         }
         .toList()
 
-private fun String.lineOf(index: Int): Int = substring(0, index).count { it == '\n' } + 1
+private fun String.lineOf(index: Int): Int =
+    substring(startIndex = 0, endIndex = index).count { it == '\n' } + 1
 
 private fun String.isCommentedOut(index: Int): Boolean =
-    substring(lastIndexOf('\n', index - 1) + 1, index).contains("//")
+    substring(startIndex = lastIndexOf('\n', index - 1) + 1, endIndex = index).contains("//")

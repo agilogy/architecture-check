@@ -12,18 +12,27 @@ import kotlin.test.assertFailsWith
 class ReportTest {
     private val finding =
         Finding(
-            FindingKind.MembersTooVisible,
-            "modules/weather",
-            "a.B.c(List<String>)",
-            "public → internal",
-            SourceLine("modules/weather/src/main/kotlin/a/B.kt", 7),
+            kind = FindingKind.MembersTooVisible,
+            module = "modules/weather",
+            subject = "a.B.c(List<String>)",
+            detail = "public → internal",
+            source = SourceLine("modules/weather/src/main/kotlin/a/B.kt", 7),
         )
 
     @Test
     fun aReportWithoutFindingsSaysSo() {
         val markdown = Report(emptyList(), sourceLinkBase = null).markdown()
 
-        assertEquals("## Architecture check\n\n✅ No findings.\n", markdown)
+        assertEquals(
+            """
+            ## Architecture check
+
+            ✅ No findings.
+
+            """
+                .trimIndent(),
+            markdown,
+        )
     }
 
     @Test
@@ -50,9 +59,13 @@ class ReportTest {
         val text = Report(listOf(finding), sourceLinkBase = null).text()
 
         assertEquals(
-            "Architecture check: 1 finding. The build fails until none is left.\n\n" +
-                "Members more visible than their uses need:\n" +
-                "  a.B.c(List<String>) public → internal (modules/weather/src/main/kotlin/a/B.kt:7)",
+            """
+            Architecture check: 1 finding. The build fails until none is left.
+
+            Members more visible than their uses need:
+              a.B.c(List<String>) public → internal (modules/weather/src/main/kotlin/a/B.kt:7)
+            """
+                .trimIndent(),
             text,
         )
     }
@@ -71,7 +84,8 @@ class CatalogueFileTest {
                     "allowedSuppressions": ["JUnitMalformedDeclaration"],
                     "testSupportModules": ["modules/test-utils"]
                 }
-                """,
+                """
+                    .trimIndent(),
             )
 
         assertEquals(

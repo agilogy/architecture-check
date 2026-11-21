@@ -15,3 +15,9 @@ potential-bugs:
     excludes: ['**/test/**', '**/testFixtures/**']
   UnnamedParameterUse:
     excludes: ['**/test/**', '**/testFixtures/**']
+
+style:
+  # ktfmt puts the lines of a raw string followed by trimIndent() at the column of its opening quotes,
+  # where this rule wants them indented further. Tests compare multiline texts that way.
+  MultilineRawStringIndentation:
+    excludes: ['**/test/**', '**/testFixtures/**']

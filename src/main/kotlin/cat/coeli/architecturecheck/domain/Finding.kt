@@ -61,8 +61,8 @@ enum class FindingKind(val title: String, val explanation: String) {
     ),
     StringDependencies(
         "Dependencies declared with strings",
-        "A dependency a build script declares with coordinates (`\"group:artifact:version\"`) or a project path " +
-            "(`project(\":module\")`). Use the version catalogue (`libs.…`) or the type-safe project accessors " +
+        """A dependency a build script declares with coordinates (`"group:artifact:version"`) or a project path """ +
+            """(`project(":module")`). Use the version catalogue (`libs.…`) or the type-safe project accessors """ +
             "(`projects.…`).",
     ),
     ForbiddenSuppressions(

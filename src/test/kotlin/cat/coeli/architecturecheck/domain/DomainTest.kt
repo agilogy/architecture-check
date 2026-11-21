@@ -138,7 +138,14 @@ class VisibilityTest {
         overriders: Set<UseScope> = emptySet(),
         canBePrivate: Boolean = true,
         isApp: Boolean = false,
-    ) = verdictOf(current, uses, overriders, canBePrivate, isApp)
+    ) =
+        verdictOf(
+            current = current,
+            uses = uses,
+            overriders = overriders,
+            canBePrivate = canBePrivate,
+            isApp = isApp,
+        )
 
     @Test
     fun aMemberUsedOnlyWhereItIsDeclaredCanBePrivate() {
@@ -179,10 +186,13 @@ class VisibilityTest {
     @Test
     fun aMemberOnlyOtherModulesTestsUseIsUnused() {
         assertEquals(
-            Verdict.Unused(onlyTestsOfOtherModules = true),
+            Verdict.Unused(isUsedOnlyByTestsOfOtherModules = true),
             verdict(uses = setOf(UseScope.OtherModuleTest)),
         )
-        assertEquals(Verdict.Unused(onlyTestsOfOtherModules = false), verdict(uses = emptySet()))
+        assertEquals(
+            Verdict.Unused(isUsedOnlyByTestsOfOtherModules = false),
+            verdict(uses = emptySet()),
+        )
     }
 }
 

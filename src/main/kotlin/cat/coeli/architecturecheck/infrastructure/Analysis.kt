@@ -21,7 +21,12 @@ internal fun analyze(root: File, catalogue: Catalogue): List<Finding> {
     val placements = importClasses(modules)
     val classes = ClassAnalysis(modules, placements, catalogue)
     return (classes.findings() +
-            memberFindingsOf(placements, modules, catalogue, classes::sourceLineOf) +
+            memberFindingsOf(
+                placements = placements,
+                modules = modules,
+                catalogue = catalogue,
+                sourceLineOf = classes::sourceLineOf,
+            ) +
             modules.flatMap { textFindingsOf(it, catalogue) })
         .sortedWith(compareBy({ it.kind }, { it.module }, { it.subject }))
 }
@@ -29,17 +34,18 @@ internal fun analyze(root: File, catalogue: Catalogue): List<Finding> {
 private fun textFindingsOf(module: Module, catalogue: Catalogue): List<Finding> {
     val buildScript = module.buildScript
     val dependencies =
-        stringDependenciesOf(buildScript.readText()).map {
+        stringDependenciesOf(buildScript.readText()).map { dependency ->
             Finding(
-                FindingKind.StringDependencies,
-                module.path,
-                it.subject,
-                source = SourceLine(module.pathOf(buildScript), it.line),
+                kind = FindingKind.StringDependencies,
+                module = module.path,
+                subject = dependency.subject,
+                source = SourceLine(module.pathOf(buildScript), dependency.line),
             )
         }
     val suppressions =
-        if (module.path == ".") emptyList()
-        else
+        if (module.path == ".") {
+            emptyList()
+        } else {
             SourceSet.entries
                 .flatMap { sourceSet ->
                     module.sourceDirectoryOf(sourceSet).walkTopDown().filter {
@@ -48,15 +54,17 @@ private fun textFindingsOf(module: Module, catalogue: Catalogue): List<Finding> 
                 }
                 .flatMap { file ->
                     forbiddenSuppressionsOf(file.readText(), catalogue.allowedSuppressions).map {
+                        suppression ->
                         Finding(
-                            FindingKind.ForbiddenSuppressions,
-                            module.path,
-                            it.subject,
-                            module.pathOf(file),
-                            SourceLine(module.pathOf(file), it.line),
+                            kind = FindingKind.ForbiddenSuppressions,
+                            module = module.path,
+                            subject = suppression.subject,
+                            detail = module.pathOf(file),
+                            source = SourceLine(module.pathOf(file), suppression.line),
                         )
                     }
                 }
+        }
     return dependencies + suppressions
 }
 
@@ -73,7 +81,7 @@ internal fun readCatalogue(text: String): Catalogue {
     }
     return Catalogue(
         ownPackage =
-            requireNotNull(catalogue["ownPackage"]?.jsonPrimitive?.content) {
+            requireNotNull(catalogue["ownPackage"]?.run { jsonPrimitive.content }) {
                 "The catalogue has no ownPackage, the package every module's root package hangs from"
             },
         libraries =

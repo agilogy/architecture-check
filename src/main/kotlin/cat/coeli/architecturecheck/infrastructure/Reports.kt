@@ -12,9 +12,11 @@ internal class Report(private val findings: List<Finding>, private val sourceLin
 
     private val summary: String
         get() =
-            if (findings.isEmpty()) "No findings."
-            else
+            if (findings.isEmpty()) {
+                "No findings."
+            } else {
                 "${findings.size} finding${if (findings.size == 1) "" else "s"}. The build fails until none is left."
+            }
 
     fun text(): String =
         (listOf("$TITLE: $summary") +
@@ -41,11 +43,14 @@ internal class Report(private val findings: List<Finding>, private val sourceLin
                         found.map { finding ->
                             listOf(
                                     finding.module.markdownCell(),
-                                    "`${finding.subject.replace("`", "'")}`".markdownCell(),
+                                    "`${finding.subject.replace(oldValue = "`", newValue = "'")}`"
+                                        .markdownCell(),
                                     finding.detail.orEmpty().markdownCell(),
-                                    finding.source?.let {
-                                        "[${it.path.substringAfterLast('/')}:${it.line}](${linkTo(it)})"
-                                    } ?: "",
+                                    finding.source
+                                        ?.let {
+                                            "[${it.path.substringAfterLast('/')}:${it.line}](${linkTo(it)})"
+                                        }
+                                        .orEmpty(),
                                 )
                                 .joinToString(" | ", prefix = "| ", postfix = " |")
                         }
@@ -54,38 +59,40 @@ internal class Report(private val findings: List<Finding>, private val sourceLin
 
     fun html(): String =
         """
-        |<!DOCTYPE html>
-        |<html lang="en">
-        |<head>
-        |<meta charset="utf-8">
-        |<title>$TITLE</title>
-        |<style>
-        |body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 70rem; padding: 0 1rem; color: #1f2328; }
-        |table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
-        |th, td { border: 1px solid #d0d7de; padding: .35rem .6rem; text-align: left; vertical-align: top; }
-        |th { background: #f6f8fa; }
-        |code { font-size: .85rem; word-break: break-all; }
-        |.explanation { color: #59636e; }
-        |</style>
-        |</head>
-        |<body>
-        |<h1>$TITLE</h1>
-        |<p>${summary.escaped()}</p>
-        |${byKind.entries.joinToString("\n") { (kind, found) -> htmlSection(kind, found) }}
-        |</body>
-        |</html>
-        |"""
+            |<!DOCTYPE html>
+            |<html lang="en">
+            |<head>
+            |<meta charset="utf-8">
+            |<title>$TITLE</title>
+            |<style>
+            |body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 70rem; padding: 0 1rem; color: #1f2328; }
+            |table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
+            |th, td { border: 1px solid #d0d7de; padding: .35rem .6rem; text-align: left; vertical-align: top; }
+            |th { background: #f6f8fa; }
+            |code { font-size: .85rem; word-break: break-all; }
+            |.explanation { color: #59636e; }
+            |</style>
+            |</head>
+            |<body>
+            |<h1>$TITLE</h1>
+            |<p>${summary.escaped()}</p>
+            |${byKind.entries.joinToString("\n") { (kind, found) -> htmlSection(kind, found) }}
+            |</body>
+            |</html>
+            |
+        """
             .trimMargin()
 
     private fun htmlSection(kind: FindingKind, found: List<Finding>): String =
         """
-        |<h2>${kind.title.escaped()} (${found.size})</h2>
-        |<p class="explanation">${kind.explanation.escaped()}</p>
-        |<table>
-        |<tr><th>Module</th><th>Finding</th><th>Detail</th><th>Source</th></tr>
-        |${found.joinToString("\n") { htmlRow(it) }}
-        |</table>
-        |"""
+            |<h2>${kind.title.escaped()} (${found.size})</h2>
+            |<p class="explanation">${kind.explanation.escaped()}</p>
+            |<table>
+            |<tr><th>Module</th><th>Finding</th><th>Detail</th><th>Source</th></tr>
+            |${found.joinToString("\n") { htmlRow(it) }}
+            |</table>
+            |
+        """
             .trimMargin()
 
     private fun htmlRow(finding: Finding): String {
@@ -103,7 +110,11 @@ internal class Report(private val findings: List<Finding>, private val sourceLin
         sourceLinkBase?.let { "$it/${source.path}#L${source.line}" } ?: source.path
 }
 
-private fun String.markdownCell(): String = replace("|", "\\|").replace("\n", " ")
+private fun String.markdownCell(): String =
+    replace(oldValue = "|", newValue = "\\|").replace(oldValue = "\n", newValue = " ")
 
 private fun String.escaped(): String =
-    replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+    replace(oldValue = "&", newValue = "&amp;")
+        .replace(oldValue = "<", newValue = "&lt;")
+        .replace(oldValue = ">", newValue = "&gt;")
+        .replace(oldValue = "\"", newValue = "&quot;")

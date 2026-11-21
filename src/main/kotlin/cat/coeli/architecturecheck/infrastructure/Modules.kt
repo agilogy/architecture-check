@@ -46,7 +46,8 @@ private val MODULE_PARENTS = listOf("apps", "modules")
  */
 internal fun discoverModules(root: File): List<Module> =
     listOf(Module(".", root)) +
-        MODULE_PARENTS.flatMap { parent -> File(root, parent).listFiles().orEmpty().toList() }
+        MODULE_PARENTS.asSequence()
+            .flatMap { parent -> File(root, parent).listFiles().orEmpty().toList() }
             .filter { File(it, BUILD_SCRIPT).isFile }
             .map { Module(it.relativeTo(root).invariantSeparatorsPath, it) }
             .sortedBy { it.path }

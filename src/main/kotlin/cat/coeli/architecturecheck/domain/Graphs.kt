@@ -8,18 +8,22 @@ internal fun cyclesOf(edges: Map<String, Set<String>>): List<List<String>> {
     val reverse =
         edges
             .flatMap { (from, targets) -> targets.map { it to from } }
-            .groupBy({ it.first }, { it.second })
+            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
     return (edges.keys + edges.values.flatten())
         .sorted()
         .fold(emptyList<Set<String>>()) { components, node ->
-            if (components.any { node in it }) components
-            else
+            if (components.any { node in it }) {
+                components
+            } else {
                 components +
                     listOf(reachableFrom(node, edges) intersect reachableFrom(node, reverse))
+            }
         }
+        .asSequence()
         .filter { it.size > 1 }
         .map { it.sorted() }
         .sortedBy { it.joinToString() }
+        .toList()
 }
 
 private fun reachableFrom(start: String, edges: Map<String, Collection<String>>): Set<String> {
@@ -50,7 +54,7 @@ internal fun neededLayersOf(
     val dependents =
         dependencies
             .flatMap { (from, targets) -> targets.map { it to from } }
-            .groupBy({ it.first }, { it.second })
+            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
     val pending = ArrayDeque(needed.keys)
     while (pending.isNotEmpty()) {
         val changed = pending.removeFirst()

@@ -32,7 +32,7 @@ enum class UseScope {
 sealed interface Verdict {
     data class TooVisible(val current: Visibility, val needed: Visibility) : Verdict
 
-    data class Unused(val onlyTestsOfOtherModules: Boolean) : Verdict
+    data class Unused(val isUsedOnlyByTestsOfOtherModules: Boolean) : Verdict
 }
 
 /**
@@ -48,15 +48,16 @@ internal fun verdictOf(
     canBePrivate: Boolean,
     isApp: Boolean,
 ): Verdict? =
-    when (val neededByUses = neededBy(uses, canBePrivate)) {
-        null -> Verdict.Unused(onlyTestsOfOtherModules = UseScope.OtherModuleTest in uses)
-        else ->
-            listOfNotNull(neededByUses, neededBy(overriders, canBePrivate = false)).max().let {
-                needed ->
-                Verdict.TooVisible(current, needed).takeIf {
-                    needed < current && !(isApp && needed == Visibility.Internal)
-                }
+    neededBy(uses, canBePrivate).let { neededByUses ->
+        if (neededByUses == null) {
+            Verdict.Unused(isUsedOnlyByTestsOfOtherModules = UseScope.OtherModuleTest in uses)
+        } else {
+            val needed =
+                listOfNotNull(neededByUses, neededBy(overriders, canBePrivate = false)).max()
+            Verdict.TooVisible(current, needed).takeIf {
+                needed < current && !(isApp && needed == Visibility.Internal)
             }
+        }
     }
 
 private fun neededBy(scopes: Set<UseScope>, canBePrivate: Boolean): Visibility? =
