@@ -1,0 +1,23 @@
+{
+    // Every module's root package hangs from it: cat.coeli.architecturecheck for this one.
+    "ownPackage": "cat.coeli",
+    // The layer each library plays for the code that uses it; the most precise entry wins.
+    "libraries": {
+        "java": "Helper",
+        "java.io": "Infrastructure",
+        "java.nio": "Infrastructure",
+        "kotlin": "Helper",
+        "kotlin.io.FilesKt": "Infrastructure",
+        "kotlin.metadata": "Infrastructure",
+        "kotlinx.serialization": "Infrastructure",
+        "com.tngtech.archunit": "Infrastructure",
+        "org.gradle": "Infrastructure",
+        "org.jetbrains.annotations": "Helper"
+    },
+    // Gradle and the builds applying the plugin use them.
+    "externalApi": [
+        "cat.coeli.architecturecheck.infrastructure.ArchitectureCheckPlugin",
+        "cat.coeli.architecturecheck.infrastructure.ArchitectureCheck",
+        "cat.coeli.architecturecheck.infrastructure.ArchitectureCheckExtension"
+    ]
+}
