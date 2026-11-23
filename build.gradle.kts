@@ -10,11 +10,20 @@ plugins {
     alias(libs.plugins.architecture.check)
 }
 
+// The JDK this build runs on and compiles with. It's looked for among the installed ones, never
+// downloaded.
+private val buildJavaVersion = 25
+
 // Gradle 9 runs on Java 17 or later: the plugin loads in any of them.
 private val gradleJavaVersion = 17
 
+tasks.updateDaemonJvm {
+    languageVersion = JavaLanguageVersion.of(buildJavaVersion)
+    toolchainDownloadUrls.empty()
+}
+
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(buildJavaVersion)
     compilerOptions {
         jvmTarget = JvmTarget.fromTarget(gradleJavaVersion.toString())
         freeCompilerArgs.add("-Xjdk-release=$gradleJavaVersion")
